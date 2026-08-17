@@ -12,6 +12,7 @@ class PasswordResetToken(Base):
         BigInteger,
         ForeignKey("account.id"),
         nullable=False,
+        index=True,
     )
     token_hash: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     expires_at: Mapped[datetime] = mapped_column(
