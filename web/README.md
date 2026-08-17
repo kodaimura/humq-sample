@@ -1,6 +1,6 @@
-# humq-sample2
+# HUMQ Flow Web
 
-React + TypeScript + Vite frontend scaffold.
+HUMQ Flow の React + TypeScript + Vite 業務コンソールです。
 
 ## Create a project
 

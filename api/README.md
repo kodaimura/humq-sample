@@ -1,6 +1,6 @@
-# humq-sample2
+# HUMQ Flow API
 
-FastAPI backend scaffold.
+HUMQ Flow の FastAPI バックエンドです。業務処理は Handler、Usecase、Module、Query に分離しています。
 
 ## Create a project
 
