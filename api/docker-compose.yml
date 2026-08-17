@@ -1,0 +1,89 @@
+name: humq-sample2
+
+services:
+  db:
+    image: postgres:17.4
+    environment:
+      POSTGRES_DB: project_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # - ./seed:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d project_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    platform: linux/amd64
+    ports:
+      - "${MAILHOG_BIND_HOST:-127.0.0.1}:8025:8025"
+
+  api:
+    image: humq-sample2-dev
+    build:
+      context: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "${API_BIND_HOST:-127.0.0.1}:8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/project_db
+      APP_ENV: dev
+      LOG_LEVEL: DEBUG
+      ENABLE_SIGNUP: true
+      AUTH_LOGIN_ID_MODE: email
+      FRONTEND_ORIGINS: http://localhost:3000,http://localhost:5173
+      ACCESS_TOKEN_SECRET: randomstring
+      ACCESS_TOKEN_EXPIRES_SECONDS: 900
+      REFRESH_TOKEN_SECRET: randomstring
+      REFRESH_TOKEN_EXPIRES_SECONDS: 43200
+      REFRESH_TOKEN_REMEMBER_ME_EXPIRES_SECONDS: 2592000
+      PASSWORD_RESET_URL_BASE: http://localhost:3000/reset-password
+      PASSWORD_RESET_TOKEN_EXPIRES_MINUTES: 30
+      PASSWORD_RESET_RESEND_INTERVAL_MINUTES: 5
+      MAIL_PROVIDER: mailhog
+      MAIL_FROM: no-reply@example.local
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USERNAME:
+      SMTP_PASSWORD:
+      SMTP_USE_TLS: false
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    tty: true
+
+  migrate:
+    image: humq-sample2-dev
+    build:
+      context: .
+    profiles:
+      - tools
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/project_db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+
+volumes:
+  postgres_data:

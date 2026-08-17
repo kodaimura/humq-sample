@@ -1,0 +1,69 @@
+DOCKER_COMPOSE := docker compose
+ENV ?= dev
+DOCKER_COMPOSE_FILE := $(if $(filter prod,$(ENV)),-f docker-compose.prod.yml,-f docker-compose.yml)
+DOCKER_COMPOSE_CMD := $(DOCKER_COMPOSE) $(DOCKER_COMPOSE_FILE)
+
+.DEFAULT_GOAL := help
+
+.PHONY: up build build_no_cache down down_volumes stop logs logs_api logs_web ps reup migrate check check_api check_web help
+
+up:
+	$(DOCKER_COMPOSE_CMD) up -d
+
+build:
+	$(DOCKER_COMPOSE_CMD) build
+
+build_no_cache:
+	$(DOCKER_COMPOSE_CMD) build --no-cache
+
+down:
+	$(DOCKER_COMPOSE_CMD) down
+
+down_volumes:
+	$(DOCKER_COMPOSE_CMD) down -v
+
+stop:
+	$(DOCKER_COMPOSE_CMD) stop
+
+logs:
+	$(DOCKER_COMPOSE_CMD) logs -f
+
+logs_api:
+	$(DOCKER_COMPOSE_CMD) logs -f api
+
+logs_web:
+	$(DOCKER_COMPOSE_CMD) logs -f web
+
+ps:
+	$(DOCKER_COMPOSE_CMD) ps
+
+reup: down up
+
+migrate:
+	$(DOCKER_COMPOSE_CMD) --profile tools run --rm migrate
+
+check: check_api check_web
+
+check_api:
+	$(MAKE) -C api check ENV=$(ENV)
+
+check_web:
+	$(MAKE) -C web check ENV=$(ENV)
+
+help:
+	@echo "Usage: make [target] [ENV=dev|prod]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  up              Start the application"
+	@echo "  build           Build application images"
+	@echo "  build_no_cache  Build images without cache"
+	@echo "  down            Stop and remove containers"
+	@echo "  down_volumes    Stop containers and remove volumes"
+	@echo "  stop            Stop containers"
+	@echo "  logs            Follow all logs"
+	@echo "  logs_api        Follow API logs"
+	@echo "  logs_web        Follow web logs"
+	@echo "  ps              Show container status"
+	@echo "  reup            Restart the application"
+	@echo "  migrate         Apply backend database migrations"
+	@echo "  check           Run backend and frontend checks"

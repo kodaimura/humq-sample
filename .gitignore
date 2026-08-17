@@ -1,0 +1,5 @@
+.DS_Store
+.env
+api/.env
+api/api/.env
+web/.env

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+TEMPLATE_NAME=scaf-fast
+
+if [ "$#" -ne 1 ]; then
+  echo "Usage: bin/scaf-init <project-name>" >&2
+  exit 1
+fi
+
+project_name=$1
+case "$project_name" in
+  ''|*[!a-z0-9_-]*|[-_]*)
+    echo "Error: project name must start with a lowercase letter or number and use only a-z, 0-9, '-' or '_'." >&2
+    exit 1
+    ;;
+esac
+project_slug=${project_name//_/-}
+
+replace_all() {
+  old_value=$1
+  new_value=$2
+  changed=0
+
+  while IFS= read -r -d '' relative_path; do
+    [ "$relative_path" = "bin/scaf-init" ] && continue
+    file="$ROOT_DIR/$relative_path"
+    [ -f "$file" ] || continue
+    if LC_ALL=C grep -qF "$old_value" "$file"; then
+      cp -p "$file" "$file.scaf-init"
+      sed "s|$old_value|$new_value|g" "$file" > "$file.scaf-init"
+      mv "$file.scaf-init" "$file"
+      changed=1
+    fi
+  done < <(git -C "$ROOT_DIR" ls-files -z)
+
+  if [ "$changed" -eq 0 ]; then
+    echo "Error: '$old_value' was not found; this scaffold may already be initialized." >&2
+    exit 1
+  fi
+}
+
+replace_all "$TEMPLATE_NAME" "$project_slug"
+echo "Initialized FastAPI scaffold as '$project_slug'."

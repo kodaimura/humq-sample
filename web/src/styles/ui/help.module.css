@@ -1,0 +1,19 @@
+.help {
+  align-items: center;
+  border-radius: 999px;
+  color: #64748b;
+  cursor: help;
+  display: inline-flex;
+  justify-content: center;
+  padding: 2px;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.help:hover {
+  background: #f1f5f9;
+  color: #111827;
+  transform: translateY(-1px);
+}

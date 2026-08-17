@@ -1,0 +1,106 @@
+.wrapper {
+  align-items: center;
+  display: inline-flex;
+  outline: none;
+  position: relative;
+}
+
+.wrapper::after {
+  content: "";
+  height: 10px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 100%;
+}
+
+.bubble {
+  background: #111827;
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.24);
+  color: #f9fafb;
+  font-size: 0.78rem;
+  left: 0;
+  line-height: 1.5;
+  max-height: 260px;
+  max-width: 360px;
+  min-width: 220px;
+  opacity: 0;
+  overflow: auto;
+  padding: 0.625rem 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  text-align: left;
+  top: calc(100% + 4px);
+  transform: translateY(6px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0.16s ease;
+  visibility: hidden;
+  white-space: normal;
+  z-index: 40;
+}
+
+.bubble::before {
+  border-bottom: 6px solid #111827;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  content: "";
+  height: 0;
+  left: 16px;
+  position: absolute;
+  top: -6px;
+  width: 0;
+}
+
+.wrapper:hover .bubble,
+.wrapper:focus-within .bubble,
+.bubble:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.alignCenter .bubble {
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+}
+
+.alignCenter .bubble::before {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.alignCenter:hover .bubble,
+.alignCenter:focus-within .bubble {
+  transform: translateX(-50%) translateY(0);
+}
+
+.alignRight .bubble {
+  left: auto;
+  right: 0;
+}
+
+.alignRight .bubble::before {
+  left: auto;
+  right: 16px;
+}
+
+.bubble p {
+  margin: 0 0 0.4rem;
+}
+
+.bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble ul {
+  margin: 0 0 0.4rem;
+  padding-left: 1rem;
+}
+
+.bubble ul:last-child {
+  margin-bottom: 0;
+}

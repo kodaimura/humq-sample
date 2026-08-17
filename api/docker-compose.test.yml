@@ -1,0 +1,23 @@
+services:
+  api:
+    ports: !reset []
+
+  mailhog:
+    ports: !reset []
+
+  api-test:
+    image: node:24-alpine
+    profiles:
+      - test
+    working_dir: /test
+    volumes:
+      - ./test/e2e:/test/e2e:ro
+    environment:
+      API_ORIGIN: http://api:8000
+      MAILHOG_URL: http://mailhog:8025
+    depends_on:
+      api:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    command: sh -c 'node --test --test-concurrency=1 /test/e2e/*.e2e.mjs'

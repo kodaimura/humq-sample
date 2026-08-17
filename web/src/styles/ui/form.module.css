@@ -1,0 +1,74 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.label {
+  align-items: center;
+  color: #334155;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  gap: 0.25rem;
+}
+
+.required {
+  color: #b91c1c;
+}
+
+.control {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #111827;
+  display: block;
+  font: inherit;
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.control:focus {
+  border-color: var(--primary, #2b6cb0);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.16);
+  outline: none;
+}
+
+.control:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.control::placeholder {
+  color: #94a3b8;
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.select {
+  appearance: auto;
+}
+
+.checkboxLabel {
+  align-items: center;
+  color: #334155;
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.checkbox {
+  accent-color: var(--primary, #2b6cb0);
+  height: 1rem;
+  width: 1rem;
+}
+
+.help {
+  color: #64748b;
+  font-size: 0.82rem;
+}

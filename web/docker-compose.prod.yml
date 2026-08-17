@@ -1,0 +1,23 @@
+name: humq-sample2
+
+services:
+  web:
+    image: humq-sample2-web-prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      APP_API_URL: ${APP_API_URL:-/api}
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1/ >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

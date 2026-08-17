@@ -1,0 +1,41 @@
+name: humq-sample2
+
+services:
+  api:
+    image: humq-sample2-runtime
+    build:
+      context: .
+    init: true
+    restart: always
+    env_file:
+      - ./.env
+    command: >
+      sh -c "gunicorn app.main:app
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000
+      --workers $${GUNICORN_WORKERS:-4}"
+    ports:
+      - "${API_BIND_HOST:-127.0.0.1}:8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: humq-sample2-runtime
+    build:
+      context: .
+    profiles:
+      - tools
+    init: true
+    env_file:
+      - ./.env
+    command: alembic upgrade head
+    restart: "no"
