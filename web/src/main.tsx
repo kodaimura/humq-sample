@@ -5,15 +5,18 @@ import "./global.css";
 
 await loadRuntimeConfig();
 
-const [{ default: AppRouter }, { AuthProvider }] = await Promise.all([
+const [{ default: AppRouter }, { AuthProvider }, { OperationsProvider }] = await Promise.all([
   import("./AppRouter"),
   import("./contexts/AuthContext"),
+  import("./contexts/OperationsContext"),
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AuthProvider>
-      <AppRouter />
+      <OperationsProvider>
+        <AppRouter />
+      </OperationsProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

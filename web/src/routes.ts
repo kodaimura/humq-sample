@@ -1,10 +1,15 @@
 export const ROUTES = {
+  catalog: "/catalog",
   changePassword: "/change-password",
   dashboard: "/dashboard",
   forgotPassword: "/forgot-password",
   home: "/",
+  inventory: "/inventory",
   login: "/login",
+  orders: "/orders",
+  organizations: "/organizations",
   resetPassword: "/reset-password",
+  shipments: "/shipments",
   signup: "/signup",
 } as const;
 
@@ -19,6 +24,11 @@ export const PRIVATE_ROUTE_PATHS = [
   ROUTES.home,
   ROUTES.dashboard,
   ROUTES.changePassword,
+  ROUTES.organizations,
+  ROUTES.catalog,
+  ROUTES.inventory,
+  ROUTES.orders,
+  ROUTES.shipments,
 ] as const;
 
 export const REDIRECT_PARAM = "from";

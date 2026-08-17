@@ -17,6 +17,11 @@ import ForgotPassword from "@pages/forgot-password/ForgotPassword";
 import ResetPassword from "@pages/reset-password/ResetPassword";
 import ChangePassword from "@pages/change-password/ChangePassword";
 import Dashboard from "@pages/dashboard/Dashboard";
+import Organizations from "@pages/organizations/Organizations";
+import Catalog from "@pages/catalog/Catalog";
+import Inventory from "@pages/inventory/Inventory";
+import Orders from "@pages/orders/Orders";
+import Shipments from "@pages/shipments/Shipments";
 import NotFound from "@pages/notfound/NotFound";
 
 const PrivateRoute = () => {
@@ -68,6 +73,11 @@ const AppRouter: React.FC = () => {
         <Route element={<PrivateRoute />}>
           <Route path={ROUTES.home} element={<Dashboard />} />
           <Route path={ROUTES.changePassword} element={<ChangePassword />} />
+          <Route path={ROUTES.organizations} element={<Organizations />} />
+          <Route path={ROUTES.catalog} element={<Catalog />} />
+          <Route path={ROUTES.inventory} element={<Inventory />} />
+          <Route path={ROUTES.orders} element={<Orders />} />
+          <Route path={ROUTES.shipments} element={<Shipments />} />
           <Route
             path={ROUTES.dashboard}
             element={<Navigate to={ROUTES.home} replace />}
