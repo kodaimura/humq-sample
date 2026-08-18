@@ -7,6 +7,9 @@ from app.handler.inventory import router as inventory_router
 from app.handler.orders import router as orders_router
 from app.handler.organizations import router as organizations_router
 from app.handler.shipments import router as shipments_router
+from app.handler.procurement import router as procurement_router
+from app.handler.returns import router as returns_router
+from app.handler.billing import router as billing_router
 
 
 api_router = APIRouter()
@@ -17,3 +20,6 @@ api_router.include_router(catalog_router)
 api_router.include_router(inventory_router)
 api_router.include_router(orders_router)
 api_router.include_router(shipments_router)
+api_router.include_router(procurement_router)
+api_router.include_router(returns_router)
+api_router.include_router(billing_router)
