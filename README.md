@@ -60,9 +60,15 @@ make demo
 
 `make demo` builds the images, runs database migrations, loads the demo data, and starts the application. Run `make seed` to load only the demo data. The seed command is idempotent and does not duplicate existing demo data.
 
+### Demo Account
+
+After `make demo` completes, sign in to the Web application with:
+
 - Login ID: `demo@example.com`
 - Password: `HumqDemo123!`
 - Primary organization: `HUMQ製造株式会社`
+
+### URLs
 
 - Web: http://localhost:3000
 - API: http://localhost:8000/api

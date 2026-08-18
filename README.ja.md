@@ -60,9 +60,15 @@ make demo
 
 `make demo` はイメージのビルド、マイグレーション、デモデータ投入、アプリケーション起動を順番に実行します。デモデータだけを再実行する場合は `make seed` を使用できます。seed は再実行可能で、投入済みの場合はデータを重複作成しません。
 
+### デモアカウント
+
+`make demo` の完了後、以下のアカウントでWebアプリケーションへログインできます。
+
 - ログインID: `demo@example.com`
 - パスワード: `HumqDemo123!`
 - 自社組織: `HUMQ製造株式会社`
+
+### URL
 
 - Web: http://localhost:3000
 - API: http://localhost:8000/api
