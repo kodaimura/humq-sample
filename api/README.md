@@ -1,6 +1,6 @@
 # HUMQ Flow API
 
-HUMQ Flow の FastAPI バックエンドです。業務処理は Handler、Usecase、Module、Query に分離しています。
+HUMQ Flow の FastAPI バックエンドです。42 テーブルを使った受注・在庫・出荷・調達・返品・請求業務を、Handler、Usecase、Module、Query、Policy に分離しています。
 
 ## Create a project
 
