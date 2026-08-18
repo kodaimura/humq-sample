@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 
-from app.query.organization_access import OrganizationAccessQuery, OrganizationAccessView
+from app.query.organization_access import (
+    OrganizationAccessQuery,
+    OrganizationAccessView,
+)
 
 
 class ListOrganizationsUsecase:

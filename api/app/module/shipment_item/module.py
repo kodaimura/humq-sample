@@ -16,7 +16,9 @@ class ShipmentItemModule:
         return entity
 
     def list_by_shipment(self, shipment_id: int) -> list[ShipmentItem]:
-        stmt = select(ShipmentItem).where(
-            ShipmentItem.shipment_id == shipment_id
-        ).order_by(ShipmentItem.id)
+        stmt = (
+            select(ShipmentItem)
+            .where(ShipmentItem.shipment_id == shipment_id)
+            .order_by(ShipmentItem.id)
+        )
         return list(self.db.scalars(stmt).all())

@@ -8,7 +8,9 @@ class OrganizationModule:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, *, code: str, name: str, kind: str, note: str | None = None) -> Organization:
+    def create(
+        self, *, code: str, name: str, kind: str, note: str | None = None
+    ) -> Organization:
         entity = Organization(code=code, name=name, kind=kind, note=note)
         self.db.add(entity)
         self.db.flush()
@@ -28,5 +30,9 @@ class OrganizationModule:
         return self.db.scalars(stmt).first()
 
     def list_all(self) -> list[Organization]:
-        stmt = select(Organization).where(Organization.deleted_at.is_(None)).order_by(Organization.name)
+        stmt = (
+            select(Organization)
+            .where(Organization.deleted_at.is_(None))
+            .order_by(Organization.name)
+        )
         return list(self.db.scalars(stmt).all())

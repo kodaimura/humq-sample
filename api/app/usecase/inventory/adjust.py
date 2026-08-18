@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 from app.core.error import AppError, ErrorCode
 from app.module.audit_log import AuditLogModule
 from app.module.business_types import InventoryEventType, MemberRole
-from app.module.inventory_adjustment import InventoryAdjustment, InventoryAdjustmentModule
+from app.module.inventory_adjustment import (
+    InventoryAdjustment,
+    InventoryAdjustmentModule,
+)
 from app.module.inventory_adjustment_item import InventoryAdjustmentItemModule
 from app.module.inventory_balance import InventoryBalanceModule
 from app.module.inventory_ledger import InventoryLedgerModule
@@ -98,7 +101,10 @@ class ApplyInventoryAdjustmentUsecase:
             action="inventory.adjusted",
             resource_type="inventory_adjustment",
             resource_id=adjustment.id,
-            details={"warehouse_id": input.warehouse_id, "line_count": len(input.items)},
+            details={
+                "warehouse_id": input.warehouse_id,
+                "line_count": len(input.items),
+            },
         )
         self.db.commit()
         return adjustment

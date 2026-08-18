@@ -8,7 +8,14 @@ class InventoryAdjustmentItemModule:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, *, adjustment_id: int, product_id: int, quantity_delta: int, note: str | None) -> InventoryAdjustmentItem:
+    def create(
+        self,
+        *,
+        adjustment_id: int,
+        product_id: int,
+        quantity_delta: int,
+        note: str | None,
+    ) -> InventoryAdjustmentItem:
         entity = InventoryAdjustmentItem(
             adjustment_id=adjustment_id,
             product_id=product_id,
@@ -21,7 +28,9 @@ class InventoryAdjustmentItemModule:
         return entity
 
     def list_by_adjustment(self, adjustment_id: int) -> list[InventoryAdjustmentItem]:
-        stmt = select(InventoryAdjustmentItem).where(
-            InventoryAdjustmentItem.adjustment_id == adjustment_id
-        ).order_by(InventoryAdjustmentItem.id)
+        stmt = (
+            select(InventoryAdjustmentItem)
+            .where(InventoryAdjustmentItem.adjustment_id == adjustment_id)
+            .order_by(InventoryAdjustmentItem.id)
+        )
         return list(self.db.scalars(stmt).all())

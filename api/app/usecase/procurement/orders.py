@@ -81,14 +81,20 @@ class CreatePurchaseOrderUsecase:
             )
             if not product or product.organization_id != input.buyer_organization_id:
                 raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
-            unit_cost = line.unit_cost or (supplier_product.unit_cost if supplier_product else None)
+            unit_cost = line.unit_cost or (
+                supplier_product.unit_cost if supplier_product else None
+            )
             if unit_cost is None:
                 raise AppError(code=ErrorCode.SUPPLIER_PRODUCT_NOT_FOUND)
-            minimum_quantity = supplier_product.minimum_order_quantity if supplier_product else 1
+            minimum_quantity = (
+                supplier_product.minimum_order_quantity if supplier_product else 1
+            )
             resolved_lines.append(
                 ResolvedPurchaseOrderLine(
                     product_id=product.id,
-                    supplier_product_id=supplier_product.id if supplier_product else None,
+                    supplier_product_id=supplier_product.id
+                    if supplier_product
+                    else None,
                     quantity=line.quantity,
                     unit_cost=unit_cost,
                 )
@@ -130,42 +136,125 @@ class CreatePurchaseOrderUsecase:
             tax_amount=totals.tax_amount,
             total_amount=totals.total_amount,
         )
-        self.history.create(purchase_order_id=order.id, from_status=None, to_status=PurchaseOrderStatus.DRAFT.value, reason=None, changed_by_account_id=input.account_id)
-        self.audit_logs.record(actor_account_id=input.account_id, action="purchase_order.created", resource_type="purchase_order", resource_id=order.id, details={"line_count": len(input.items)})
+        self.history.create(
+            purchase_order_id=order.id,
+            from_status=None,
+            to_status=PurchaseOrderStatus.DRAFT.value,
+            reason=None,
+            changed_by_account_id=input.account_id,
+        )
+        self.audit_logs.record(
+            actor_account_id=input.account_id,
+            action="purchase_order.created",
+            resource_type="purchase_order",
+            resource_id=order.id,
+            details={"line_count": len(input.items)},
+        )
         self.db.commit()
         return order
 
 
 class ApprovePurchaseOrderUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.orders = PurchaseOrderModule(db); self.history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db
+        self.require_role = RequireOrganizationRoleOperation(db)
+        self.orders = PurchaseOrderModule(db)
+        self.history = PurchaseOrderStatusHistoryModule(db)
+        self.outbox = OutboxEventModule(db)
+        self.audit = AuditLogModule(db)
 
-    def execute(self, *, account_id: int, purchase_order_id: int, reason: str | None = None) -> PurchaseOrder:
+    def execute(
+        self, *, account_id: int, purchase_order_id: int, reason: str | None = None
+    ) -> PurchaseOrder:
         order = self.orders.get_for_update(purchase_order_id)
-        if not order: raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
-        self.require_role.run(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
-        if order.status != PurchaseOrderStatus.DRAFT.value: raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)
+        if not order:
+            raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
+        self.require_role.run(
+            organization_id=order.buyer_organization_id,
+            account_id=account_id,
+            allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
+        )
+        if order.status != PurchaseOrderStatus.DRAFT.value:
+            raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)
         previous = self.orders.change_status(order, PurchaseOrderStatus.APPROVED.value)
-        self.history.create(purchase_order_id=order.id, from_status=previous, to_status=PurchaseOrderStatus.APPROVED.value, reason=reason, changed_by_account_id=account_id)
-        self.outbox.enqueue(event_type="purchase_order.approved", aggregate_type="purchase_order", aggregate_id=order.id, payload={"purchase_order_id": order.id, "status": PurchaseOrderStatus.APPROVED.value})
-        self.audit.record(actor_account_id=account_id, action="purchase_order.approved", resource_type="purchase_order", resource_id=order.id, details={"reason": reason})
-        self.db.commit(); return order
+        self.history.create(
+            purchase_order_id=order.id,
+            from_status=previous,
+            to_status=PurchaseOrderStatus.APPROVED.value,
+            reason=reason,
+            changed_by_account_id=account_id,
+        )
+        self.outbox.enqueue(
+            event_type="purchase_order.approved",
+            aggregate_type="purchase_order",
+            aggregate_id=order.id,
+            payload={
+                "purchase_order_id": order.id,
+                "status": PurchaseOrderStatus.APPROVED.value,
+            },
+        )
+        self.audit.record(
+            actor_account_id=account_id,
+            action="purchase_order.approved",
+            resource_type="purchase_order",
+            resource_id=order.id,
+            details={"reason": reason},
+        )
+        self.db.commit()
+        return order
 
 
 class CancelPurchaseOrderUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.orders = PurchaseOrderModule(db); self.history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db
+        self.require_role = RequireOrganizationRoleOperation(db)
+        self.orders = PurchaseOrderModule(db)
+        self.history = PurchaseOrderStatusHistoryModule(db)
+        self.outbox = OutboxEventModule(db)
+        self.audit = AuditLogModule(db)
 
-    def execute(self, *, account_id: int, purchase_order_id: int, reason: str | None = None) -> PurchaseOrder:
+    def execute(
+        self, *, account_id: int, purchase_order_id: int, reason: str | None = None
+    ) -> PurchaseOrder:
         order = self.orders.get_for_update(purchase_order_id)
-        if not order: raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
-        self.require_role.run(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
-        if order.status not in {PurchaseOrderStatus.DRAFT.value, PurchaseOrderStatus.APPROVED.value}: raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)
+        if not order:
+            raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
+        self.require_role.run(
+            organization_id=order.buyer_organization_id,
+            account_id=account_id,
+            allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
+        )
+        if order.status not in {
+            PurchaseOrderStatus.DRAFT.value,
+            PurchaseOrderStatus.APPROVED.value,
+        }:
+            raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)
         previous = self.orders.change_status(order, PurchaseOrderStatus.CANCELED.value)
-        self.history.create(purchase_order_id=order.id, from_status=previous, to_status=PurchaseOrderStatus.CANCELED.value, reason=reason, changed_by_account_id=account_id)
-        self.outbox.enqueue(event_type="purchase_order.canceled", aggregate_type="purchase_order", aggregate_id=order.id, payload={"purchase_order_id": order.id, "status": PurchaseOrderStatus.CANCELED.value})
-        self.audit.record(actor_account_id=account_id, action="purchase_order.canceled", resource_type="purchase_order", resource_id=order.id, details={"reason": reason})
-        self.db.commit(); return order
+        self.history.create(
+            purchase_order_id=order.id,
+            from_status=previous,
+            to_status=PurchaseOrderStatus.CANCELED.value,
+            reason=reason,
+            changed_by_account_id=account_id,
+        )
+        self.outbox.enqueue(
+            event_type="purchase_order.canceled",
+            aggregate_type="purchase_order",
+            aggregate_id=order.id,
+            payload={
+                "purchase_order_id": order.id,
+                "status": PurchaseOrderStatus.CANCELED.value,
+            },
+        )
+        self.audit.record(
+            actor_account_id=account_id,
+            action="purchase_order.canceled",
+            resource_type="purchase_order",
+            resource_id=order.id,
+            details={"reason": reason},
+        )
+        self.db.commit()
+        return order
 
 
 def _new_number(prefix: str) -> str:

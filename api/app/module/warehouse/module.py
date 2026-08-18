@@ -19,7 +19,9 @@ class WarehouseModule:
         return self.db.get(Warehouse, warehouse_id)
 
     def list_by_organization(self, organization_id: int) -> list[Warehouse]:
-        stmt = select(Warehouse).where(
-            Warehouse.organization_id == organization_id
-        ).order_by(Warehouse.code)
+        stmt = (
+            select(Warehouse)
+            .where(Warehouse.organization_id == organization_id)
+            .order_by(Warehouse.code)
+        )
         return list(self.db.scalars(stmt).all())

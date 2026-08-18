@@ -12,9 +12,9 @@ class OrderFulfillmentQuery:
         self.db = db
 
     def quantities(self, order_id: int) -> tuple[int, int]:
-        ordered_stmt = select(func.coalesce(func.sum(SalesOrderItem.quantity), 0)).where(
-            SalesOrderItem.order_id == order_id
-        )
+        ordered_stmt = select(
+            func.coalesce(func.sum(SalesOrderItem.quantity), 0)
+        ).where(SalesOrderItem.order_id == order_id)
         shipped_stmt = (
             select(func.coalesce(func.sum(ShipmentItem.quantity), 0))
             .join(Shipment, Shipment.id == ShipmentItem.shipment_id)
@@ -23,4 +23,6 @@ class OrderFulfillmentQuery:
                 Shipment.status == ShipmentStatus.SHIPPED.value,
             )
         )
-        return int(self.db.scalar(ordered_stmt) or 0), int(self.db.scalar(shipped_stmt) or 0)
+        return int(self.db.scalar(ordered_stmt) or 0), int(
+            self.db.scalar(shipped_stmt) or 0
+        )

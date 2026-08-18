@@ -20,7 +20,9 @@ from app.usecase.shipments.ship import ShipShipmentUsecase
 router = APIRouter(tags=["shipments"])
 
 
-@router.get("/organizations/{organization_id}/shipments", response_model=ShipmentsResponse)
+@router.get(
+    "/organizations/{organization_id}/shipments", response_model=ShipmentsResponse
+)
 def list_shipments(
     organization_id: int,
     response: Response,
@@ -56,7 +58,9 @@ def create_shipment(
         note=request.note,
     )
     return ApiResponse.created(
-        data=ShipmentOperationResponse(shipment=ShipmentResponse.model_validate(shipment)),
+        data=ShipmentOperationResponse(
+            shipment=ShipmentResponse.model_validate(shipment)
+        ),
         response=response,
     )
 
@@ -75,6 +79,8 @@ def ship_shipment(
         tracking_number=request.tracking_number,
     )
     return ApiResponse.ok(
-        data=ShipmentOperationResponse(shipment=ShipmentResponse.model_validate(shipment)),
+        data=ShipmentOperationResponse(
+            shipment=ShipmentResponse.model_validate(shipment)
+        ),
         response=response,
     )

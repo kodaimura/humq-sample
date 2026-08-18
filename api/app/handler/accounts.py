@@ -22,7 +22,10 @@ from app.usecase.accounts.create import CreateAccountInput, CreateAccountUsecase
 from app.usecase.accounts.disable import DisableAccountInput, DisableAccountUsecase
 from app.usecase.accounts.enable import EnableAccountInput, EnableAccountUsecase
 from app.usecase.accounts.get import GetAccountInput, GetAccountUsecase
-from app.usecase.accounts.get_current import GetCurrentAccountInput, GetCurrentAccountUsecase
+from app.usecase.accounts.get_current import (
+    GetCurrentAccountInput,
+    GetCurrentAccountUsecase,
+)
 from app.usecase.accounts.list import ListAccountsUsecase
 from app.usecase.accounts.update import UpdateAccountInput, UpdateAccountUsecase
 from app.usecase.accounts.update_password import (

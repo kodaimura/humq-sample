@@ -63,7 +63,9 @@ class TaxedAmount:
     total_amount: Decimal
 
 
-def taxed_amount(subtotals: Iterable[Decimal], tax_rate: Decimal = DEFAULT_TAX_RATE) -> TaxedAmount:
+def taxed_amount(
+    subtotals: Iterable[Decimal], tax_rate: Decimal = DEFAULT_TAX_RATE
+) -> TaxedAmount:
     subtotal = sum_money(subtotals)
     tax_amount = tax_for(subtotal, tax_rate)
     return TaxedAmount(

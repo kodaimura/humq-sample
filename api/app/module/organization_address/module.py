@@ -19,7 +19,9 @@ class OrganizationAddressModule:
         return self.db.get(OrganizationAddress, address_id)
 
     def list_by_organization(self, organization_id: int) -> list[OrganizationAddress]:
-        stmt = select(OrganizationAddress).where(
-            OrganizationAddress.organization_id == organization_id
-        ).order_by(OrganizationAddress.is_default.desc(), OrganizationAddress.id)
+        stmt = (
+            select(OrganizationAddress)
+            .where(OrganizationAddress.organization_id == organization_id)
+            .order_by(OrganizationAddress.is_default.desc(), OrganizationAddress.id)
+        )
         return list(self.db.scalars(stmt).all())

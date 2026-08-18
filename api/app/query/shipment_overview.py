@@ -42,7 +42,9 @@ class ShipmentOverviewQuery:
                 Warehouse.name.label("warehouse_name"),
                 Shipment.status,
                 func.count(ShipmentItem.id).label("item_count"),
-                func.coalesce(func.sum(ShipmentItem.quantity), 0).label("total_quantity"),
+                func.coalesce(func.sum(ShipmentItem.quantity), 0).label(
+                    "total_quantity"
+                ),
                 Shipment.tracking_number,
                 Shipment.shipped_at,
                 Shipment.created_at,

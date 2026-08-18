@@ -38,7 +38,8 @@ class CustomerProductPriceModule:
         stmt = (
             select(CustomerProductPrice)
             .where(
-                CustomerProductPrice.customer_organization_id == customer_organization_id,
+                CustomerProductPrice.customer_organization_id
+                == customer_organization_id,
                 CustomerProductPrice.product_id == product_id,
                 CustomerProductPrice.valid_from <= on_date,
                 or_(

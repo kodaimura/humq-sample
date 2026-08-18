@@ -6,7 +6,10 @@ from app.core.error import AppError, ErrorCode
 from app.module.business_types import MemberRole
 from app.module.purchase_order import PurchaseOrder, PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItem, PurchaseOrderItemModule
-from app.query.procurement_overview import ProcurementOverviewQuery, PurchaseOrderOverview
+from app.query.procurement_overview import (
+    ProcurementOverviewQuery,
+    PurchaseOrderOverview,
+)
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 from app.usecase.procurement._policies import reorder_decision
 

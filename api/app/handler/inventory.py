@@ -32,7 +32,9 @@ from app.usecase.inventory.transfer import (
 router = APIRouter(tags=["inventory"])
 
 
-@router.get("/organizations/{organization_id}/inventory", response_model=InventoryResponse)
+@router.get(
+    "/organizations/{organization_id}/inventory", response_model=InventoryResponse
+)
 def list_inventory(
     organization_id: int,
     response: Response,
@@ -110,7 +112,9 @@ def create_transfer(
     )
 
 
-@router.post("/inventory-transfers/{transfer_id}/ship", response_model=TransferOperationResponse)
+@router.post(
+    "/inventory-transfers/{transfer_id}/ship", response_model=TransferOperationResponse
+)
 def ship_transfer(
     transfer_id: int,
     response: Response,
@@ -121,12 +125,17 @@ def ship_transfer(
         account_id=account_id, transfer_id=transfer_id
     )
     return ApiResponse.ok(
-        data=TransferOperationResponse(transfer=TransferResponse.model_validate(transfer)),
+        data=TransferOperationResponse(
+            transfer=TransferResponse.model_validate(transfer)
+        ),
         response=response,
     )
 
 
-@router.post("/inventory-transfers/{transfer_id}/receive", response_model=TransferOperationResponse)
+@router.post(
+    "/inventory-transfers/{transfer_id}/receive",
+    response_model=TransferOperationResponse,
+)
 def receive_transfer(
     transfer_id: int,
     response: Response,
@@ -137,6 +146,8 @@ def receive_transfer(
         account_id=account_id, transfer_id=transfer_id
     )
     return ApiResponse.ok(
-        data=TransferOperationResponse(transfer=TransferResponse.model_validate(transfer)),
+        data=TransferOperationResponse(
+            transfer=TransferResponse.model_validate(transfer)
+        ),
         response=response,
     )

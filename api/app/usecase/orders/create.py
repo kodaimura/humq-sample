@@ -61,7 +61,9 @@ class CreateOrderUsecase:
             address = self.addresses.get_by_id(input.shipping_address_id)
             if not address or address.organization_id != customer.id:
                 raise AppError(code=ErrorCode.ADDRESS_NOT_FOUND)
-        if not input.items or len({item.product_id for item in input.items}) != len(input.items):
+        if not input.items or len({item.product_id for item in input.items}) != len(
+            input.items
+        ):
             raise AppError(code=ErrorCode.INVALID_STATE)
 
         order = self.orders.create(
@@ -90,7 +92,9 @@ class CreateOrderUsecase:
                 product_id=product.id,
                 on_date=today,
             )
-            unit_price = customer_price.unit_price if customer_price else product.unit_price
+            unit_price = (
+                customer_price.unit_price if customer_price else product.unit_price
+            )
             item = self.order_items.create(
                 order_id=order.id,
                 product_id=product.id,
@@ -119,7 +123,10 @@ class CreateOrderUsecase:
             action="order.created",
             resource_type="sales_order",
             resource_id=order.id,
-            details={"order_number": order.order_number, "line_count": len(input.items)},
+            details={
+                "order_number": order.order_number,
+                "line_count": len(input.items),
+            },
         )
         self.db.commit()
         return order

@@ -4,8 +4,21 @@ from .model import GoodsReceiptItem
 
 
 class GoodsReceiptItemModule:
-    def __init__(self, db: Session): self.db = db
+    def __init__(self, db: Session):
+        self.db = db
+
     def create(self, **values) -> GoodsReceiptItem:
-        entity = GoodsReceiptItem(**values); self.db.add(entity); self.db.flush(); self.db.refresh(entity); return entity
+        entity = GoodsReceiptItem(**values)
+        self.db.add(entity)
+        self.db.flush()
+        self.db.refresh(entity)
+        return entity
+
     def list_by_receipt(self, goods_receipt_id: int) -> list[GoodsReceiptItem]:
-        return list(self.db.scalars(select(GoodsReceiptItem).where(GoodsReceiptItem.goods_receipt_id == goods_receipt_id).order_by(GoodsReceiptItem.id)).all())
+        return list(
+            self.db.scalars(
+                select(GoodsReceiptItem)
+                .where(GoodsReceiptItem.goods_receipt_id == goods_receipt_id)
+                .order_by(GoodsReceiptItem.id)
+            ).all()
+        )

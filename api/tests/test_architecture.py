@@ -120,7 +120,10 @@ class HumqDependencyTest(unittest.TestCase):
             for node in ast.walk(parsed(path)):
                 if isinstance(node, ast.ImportFrom):
                     imported = node.module or ""
-                    if imported.startswith("app.module") and imported != "app.module.business_types":
+                    if (
+                        imported.startswith("app.module")
+                        and imported != "app.module.business_types"
+                    ):
                         violations.append(
                             f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
                         )
@@ -139,7 +142,16 @@ class HumqDependencyTest(unittest.TestCase):
 
     def test_queries_are_read_only(self):
         violations: list[str] = []
-        forbidden_calls = {"add", "add_all", "begin", "commit", "delete", "flush", "merge", "rollback"}
+        forbidden_calls = {
+            "add",
+            "add_all",
+            "begin",
+            "commit",
+            "delete",
+            "flush",
+            "merge",
+            "rollback",
+        }
         forbidden_sql = {"delete", "insert", "update"}
         for path in sorted((APP_ROOT / "query").rglob("*.py")):
             tree = parsed(path)
@@ -203,10 +215,13 @@ class HumqDependencyTest(unittest.TestCase):
                     and imported != "app.module.business_types"
                 )
                 if imports_runtime_dependency:
-                    violations.append(
-                        f"{path.relative_to(APP_ROOT)} -> {imported}"
-                    )
-            for method in called_methods(path) & {"begin", "commit", "rollback", "flush"}:
+                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
+            for method in called_methods(path) & {
+                "begin",
+                "commit",
+                "rollback",
+                "flush",
+            }:
                 violations.append(f"{path.relative_to(APP_ROOT)} -> {method}()")
         self.assertEqual(violations, [])
 
@@ -218,9 +233,7 @@ class HumqDependencyTest(unittest.TestCase):
                 if imported.endswith("_operations") or imported.startswith(
                     ("app.client", "app.integration")
                 ):
-                    violations.append(
-                        f"{path.relative_to(APP_ROOT)} -> {imported}"
-                    )
+                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
             for method in called_methods(path) & {"begin", "commit", "rollback"}:
                 violations.append(f"{path.relative_to(APP_ROOT)} -> {method}()")
             for node in ast.walk(tree):
@@ -232,9 +245,7 @@ class HumqDependencyTest(unittest.TestCase):
                     if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
                 }
                 if not node.name.endswith("Operation"):
-                    violations.append(
-                        f"{path.relative_to(APP_ROOT)} -> {node.name}"
-                    )
+                    violations.append(f"{path.relative_to(APP_ROOT)} -> {node.name}")
                 if "run" not in methods or "execute" in methods:
                     violations.append(
                         f"{path.relative_to(APP_ROOT)} -> {node.name} methods"
@@ -293,7 +304,10 @@ class HumqDependencyTest(unittest.TestCase):
                     violations.append(
                         f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
                     )
-                if not imported.startswith("app.module") or imported == "app.module.business_types":
+                if (
+                    not imported.startswith("app.module")
+                    or imported == "app.module.business_types"
+                ):
                     continue
                 imported_model_names.update(
                     alias.asname or alias.name
@@ -356,9 +370,7 @@ class HumqDependencyTest(unittest.TestCase):
         for path in sorted(USECASE_ROOT.rglob("__init__.py")):
             for imported in imported_modules(path):
                 if imported.endswith(("_policies", "_operations")):
-                    violations.append(
-                        f"{path.relative_to(APP_ROOT)} -> {imported}"
-                    )
+                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
         self.assertEqual(violations, [])
 
 

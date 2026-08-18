@@ -39,7 +39,9 @@ class ListCategoriesUsecase:
         self.require_role = RequireOrganizationRoleOperation(db)
         self.categories = ProductCategoryModule(db)
 
-    def execute(self, *, account_id: int, organization_id: int) -> list[ProductCategory]:
+    def execute(
+        self, *, account_id: int, organization_id: int
+    ) -> list[ProductCategory]:
         self.require_role.run(
             organization_id=organization_id,
             account_id=account_id,

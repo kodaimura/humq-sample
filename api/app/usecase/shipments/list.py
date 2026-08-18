@@ -10,7 +10,9 @@ class ListShipmentsUsecase:
         self.require_role = RequireOrganizationRoleOperation(db)
         self.query = ShipmentOverviewQuery(db)
 
-    def execute(self, *, account_id: int, organization_id: int) -> list[ShipmentOverview]:
+    def execute(
+        self, *, account_id: int, organization_id: int
+    ) -> list[ShipmentOverview]:
         self.require_role.run(
             organization_id=organization_id,
             account_id=account_id,

@@ -38,7 +38,10 @@ from app.usecase.catalog.warehouses import (
 router = APIRouter(tags=["catalog"])
 
 
-@router.get("/organizations/{organization_id}/product-categories", response_model=CategoriesResponse)
+@router.get(
+    "/organizations/{organization_id}/product-categories",
+    response_model=CategoriesResponse,
+)
 def list_categories(
     organization_id: int,
     response: Response,
@@ -49,12 +52,17 @@ def list_categories(
         account_id=account_id, organization_id=organization_id
     )
     return ApiResponse.ok(
-        data=CategoriesResponse(categories=[CategoryResponse.model_validate(item) for item in items]),
+        data=CategoriesResponse(
+            categories=[CategoryResponse.model_validate(item) for item in items]
+        ),
         response=response,
     )
 
 
-@router.post("/organizations/{organization_id}/product-categories", response_model=CategoryCreatedResponse)
+@router.post(
+    "/organizations/{organization_id}/product-categories",
+    response_model=CategoryCreatedResponse,
+)
 def create_category(
     organization_id: int,
     request: CreateCategoryRequest,
@@ -75,7 +83,9 @@ def create_category(
     )
 
 
-@router.get("/organizations/{organization_id}/products", response_model=ProductsResponse)
+@router.get(
+    "/organizations/{organization_id}/products", response_model=ProductsResponse
+)
 def list_products(
     organization_id: int,
     response: Response,
@@ -86,12 +96,16 @@ def list_products(
         account_id=account_id, organization_id=organization_id
     )
     return ApiResponse.ok(
-        data=ProductsResponse(products=[ProductResponse.model_validate(item) for item in items]),
+        data=ProductsResponse(
+            products=[ProductResponse.model_validate(item) for item in items]
+        ),
         response=response,
     )
 
 
-@router.post("/organizations/{organization_id}/products", response_model=ProductCreatedResponse)
+@router.post(
+    "/organizations/{organization_id}/products", response_model=ProductCreatedResponse
+)
 def create_product(
     organization_id: int,
     request: CreateProductRequest,
@@ -112,7 +126,9 @@ def create_product(
     )
 
 
-@router.get("/organizations/{organization_id}/warehouses", response_model=WarehousesResponse)
+@router.get(
+    "/organizations/{organization_id}/warehouses", response_model=WarehousesResponse
+)
 def list_warehouses(
     organization_id: int,
     response: Response,
@@ -123,12 +139,17 @@ def list_warehouses(
         account_id=account_id, organization_id=organization_id
     )
     return ApiResponse.ok(
-        data=WarehousesResponse(warehouses=[WarehouseResponse.model_validate(item) for item in items]),
+        data=WarehousesResponse(
+            warehouses=[WarehouseResponse.model_validate(item) for item in items]
+        ),
         response=response,
     )
 
 
-@router.post("/organizations/{organization_id}/warehouses", response_model=WarehouseCreatedResponse)
+@router.post(
+    "/organizations/{organization_id}/warehouses",
+    response_model=WarehouseCreatedResponse,
+)
 def create_warehouse(
     organization_id: int,
     request: CreateWarehouseRequest,

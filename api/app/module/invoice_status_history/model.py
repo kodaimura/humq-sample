@@ -7,9 +7,15 @@ from app.core.database import Base
 class InvoiceStatusHistory(Base):
     __tablename__ = "invoice_status_history"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    invoice_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("invoice.id"), index=True)
+    invoice_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("invoice.id"), index=True
+    )
     from_status: Mapped[str | None] = mapped_column(String(30))
     to_status: Mapped[str] = mapped_column(String(30), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text)
-    changed_by_account_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("account.id"))
-    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    changed_by_account_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("account.id")
+    )
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

@@ -35,9 +35,11 @@ class InventoryBalanceModule:
         return entity
 
     def list_by_warehouse(self, warehouse_id: int) -> list[InventoryBalance]:
-        stmt = select(InventoryBalance).where(
-            InventoryBalance.warehouse_id == warehouse_id
-        ).order_by(InventoryBalance.product_id)
+        stmt = (
+            select(InventoryBalance)
+            .where(InventoryBalance.warehouse_id == warehouse_id)
+            .order_by(InventoryBalance.product_id)
+        )
         return list(self.db.scalars(stmt).all())
 
     def adjust_on_hand(self, entity: InventoryBalance, quantity_delta: int) -> bool:
@@ -66,7 +68,11 @@ class InventoryBalanceModule:
         return True
 
     def consume_reserved(self, entity: InventoryBalance, quantity: int) -> bool:
-        if quantity <= 0 or entity.reserved_quantity < quantity or entity.on_hand_quantity < quantity:
+        if (
+            quantity <= 0
+            or entity.reserved_quantity < quantity
+            or entity.on_hand_quantity < quantity
+        ):
             return False
         entity.reserved_quantity -= quantity
         entity.on_hand_quantity -= quantity

@@ -10,7 +10,9 @@ class ListInventoryUsecase:
         self.require_role = RequireOrganizationRoleOperation(db)
         self.query = InventoryOverviewQuery(db)
 
-    def execute(self, *, account_id: int, organization_id: int) -> list[InventoryOverview]:
+    def execute(
+        self, *, account_id: int, organization_id: int
+    ) -> list[InventoryOverview]:
         self.require_role.run(
             organization_id=organization_id,
             account_id=account_id,

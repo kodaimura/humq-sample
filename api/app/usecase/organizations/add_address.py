@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.module.business_types import MemberRole
-from app.module.organization_address import OrganizationAddress, OrganizationAddressModule
+from app.module.organization_address import (
+    OrganizationAddress,
+    OrganizationAddressModule,
+)
 from ._operations import RequireOrganizationRoleOperation
 
 
@@ -36,7 +39,11 @@ class AddOrganizationAddressUsecase:
             allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value},
         )
         address = self.addresses.create(
-            **{key: value for key, value in input.__dict__.items() if key != "account_id"}
+            **{
+                key: value
+                for key, value in input.__dict__.items()
+                if key != "account_id"
+            }
         )
         self.db.commit()
         return address

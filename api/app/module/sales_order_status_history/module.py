@@ -16,7 +16,9 @@ class SalesOrderStatusHistoryModule:
         return entity
 
     def list_by_order(self, order_id: int) -> list[SalesOrderStatusHistory]:
-        stmt = select(SalesOrderStatusHistory).where(
-            SalesOrderStatusHistory.order_id == order_id
-        ).order_by(SalesOrderStatusHistory.id)
+        stmt = (
+            select(SalesOrderStatusHistory)
+            .where(SalesOrderStatusHistory.order_id == order_id)
+            .order_by(SalesOrderStatusHistory.id)
+        )
         return list(self.db.scalars(stmt).all())

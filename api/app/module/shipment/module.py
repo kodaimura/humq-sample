@@ -26,7 +26,9 @@ class ShipmentModule:
         return self.db.scalars(stmt).first()
 
     def list_by_order(self, order_id: int) -> list[Shipment]:
-        stmt = select(Shipment).where(Shipment.order_id == order_id).order_by(Shipment.id)
+        stmt = (
+            select(Shipment).where(Shipment.order_id == order_id).order_by(Shipment.id)
+        )
         return list(self.db.scalars(stmt).all())
 
     def change_status(

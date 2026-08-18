@@ -58,7 +58,11 @@ class ConfigureSupplierProductUsecase:
             raise AppError(code=ErrorCode.ORGANIZATION_NOT_FOUND)
         if not product or product.organization_id != input.buyer_organization_id:
             raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
-        if input.unit_cost <= 0 or input.lead_time_days < 0 or input.minimum_order_quantity <= 0:
+        if (
+            input.unit_cost <= 0
+            or input.lead_time_days < 0
+            or input.minimum_order_quantity <= 0
+        ):
             raise AppError(code=ErrorCode.INVALID_STATE)
         if self.supplier_products.get(
             supplier_organization_id=supplier.id, product_id=product.id
@@ -104,10 +108,15 @@ class ConfigureReorderPolicyUsecase:
             raise AppError(code=ErrorCode.WAREHOUSE_NOT_FOUND)
         if not product or product.organization_id != input.organization_id:
             raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
-        if input.reorder_point < 0 or input.target_stock_quantity <= input.reorder_point:
+        if (
+            input.reorder_point < 0
+            or input.target_stock_quantity <= input.reorder_point
+        ):
             raise AppError(code=ErrorCode.INVALID_STATE)
         if input.preferred_supplier_organization_id is not None:
-            supplier = self.organizations.get_by_id(input.preferred_supplier_organization_id)
+            supplier = self.organizations.get_by_id(
+                input.preferred_supplier_organization_id
+            )
             if not supplier or supplier.kind != OrganizationKind.SUPPLIER.value:
                 raise AppError(code=ErrorCode.ORGANIZATION_NOT_FOUND)
         if self.policies.get(warehouse_id=warehouse.id, product_id=product.id):

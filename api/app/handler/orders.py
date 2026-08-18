@@ -26,7 +26,9 @@ from app.usecase.orders.list import GetOperationsDashboardUsecase, ListOrdersUse
 router = APIRouter(tags=["orders"])
 
 
-@router.get("/organizations/{organization_id}/dashboard", response_model=DashboardResponse)
+@router.get(
+    "/organizations/{organization_id}/dashboard", response_model=DashboardResponse
+)
 def get_dashboard(
     organization_id: int,
     response: Response,
@@ -63,7 +65,9 @@ def list_orders(
     )
 
 
-@router.post("/organizations/{organization_id}/orders", response_model=OrderOperationResponse)
+@router.post(
+    "/organizations/{organization_id}/orders", response_model=OrderOperationResponse
+)
 def create_order(
     organization_id: int,
     request: CreateOrderRequest,

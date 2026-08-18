@@ -44,7 +44,10 @@ class CreateTransferUsecase:
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
         )
-        if input.source_warehouse_id == input.destination_warehouse_id or not input.items:
+        if (
+            input.source_warehouse_id == input.destination_warehouse_id
+            or not input.items
+        ):
             raise AppError(code=ErrorCode.INVALID_TRANSFER_STATE)
         for warehouse_id in (input.source_warehouse_id, input.destination_warehouse_id):
             warehouse = self.warehouses.get_by_id(warehouse_id)
@@ -63,7 +66,9 @@ class CreateTransferUsecase:
             if item.quantity <= 0:
                 raise AppError(code=ErrorCode.INVALID_TRANSFER_STATE)
             self.items.create(
-                transfer_id=transfer.id, product_id=item.product_id, quantity=item.quantity
+                transfer_id=transfer.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
             )
         self.db.commit()
         return transfer

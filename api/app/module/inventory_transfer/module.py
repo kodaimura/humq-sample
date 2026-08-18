@@ -19,9 +19,11 @@ class InventoryTransferModule:
         return entity
 
     def get_for_update(self, transfer_id: int) -> InventoryTransfer | None:
-        stmt = select(InventoryTransfer).where(
-            InventoryTransfer.id == transfer_id
-        ).with_for_update()
+        stmt = (
+            select(InventoryTransfer)
+            .where(InventoryTransfer.id == transfer_id)
+            .with_for_update()
+        )
         return self.db.scalars(stmt).first()
 
     def mark_in_transit(self, entity: InventoryTransfer) -> None:

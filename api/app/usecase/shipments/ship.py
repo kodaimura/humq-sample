@@ -78,9 +78,7 @@ class ShipShipmentUsecase:
                 balance, shipment_item.quantity
             ):
                 raise AppError(code=ErrorCode.INVENTORY_INSUFFICIENT)
-            self.reservations.set_status(
-                reservation, ReservationStatus.CONSUMED.value
-            )
+            self.reservations.set_status(reservation, ReservationStatus.CONSUMED.value)
             self.ledger.record(
                 warehouse_id=shipment.warehouse_id,
                 product_id=shipment_item.product_id,

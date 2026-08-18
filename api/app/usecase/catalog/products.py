@@ -38,7 +38,9 @@ class CreateProductUsecase:
             category = self.categories.get_by_id(input.category_id)
             if not category or category.organization_id != input.organization_id:
                 raise AppError(code=ErrorCode.CATEGORY_NOT_FOUND)
-        if self.products.get_by_sku(organization_id=input.organization_id, sku=input.sku):
+        if self.products.get_by_sku(
+            organization_id=input.organization_id, sku=input.sku
+        ):
             raise AppError(code=ErrorCode.DUPLICATE_CODE)
         product = self.products.create(
             organization_id=input.organization_id,

@@ -1,7 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -27,8 +37,12 @@ class SalesOrder(Base):
     )
     requested_ship_date: Mapped[date | None] = mapped_column(Date)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False, default=0)
-    tax_amount: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False, default=0)
-    total_amount: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False, default=0)
+    tax_amount: Mapped[Decimal] = mapped_column(
+        Numeric(16, 2), nullable=False, default=0
+    )
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(16, 2), nullable=False, default=0
+    )
     note: Mapped[str | None] = mapped_column(Text)
     ordered_by_account_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("account.id"), nullable=False
@@ -40,5 +54,8 @@ class SalesOrder(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )

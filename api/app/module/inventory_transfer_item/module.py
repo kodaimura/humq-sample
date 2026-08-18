@@ -8,7 +8,9 @@ class InventoryTransferItemModule:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, *, transfer_id: int, product_id: int, quantity: int) -> InventoryTransferItem:
+    def create(
+        self, *, transfer_id: int, product_id: int, quantity: int
+    ) -> InventoryTransferItem:
         entity = InventoryTransferItem(
             transfer_id=transfer_id, product_id=product_id, quantity=quantity
         )
@@ -18,7 +20,9 @@ class InventoryTransferItemModule:
         return entity
 
     def list_by_transfer(self, transfer_id: int) -> list[InventoryTransferItem]:
-        stmt = select(InventoryTransferItem).where(
-            InventoryTransferItem.transfer_id == transfer_id
-        ).order_by(InventoryTransferItem.id)
+        stmt = (
+            select(InventoryTransferItem)
+            .where(InventoryTransferItem.transfer_id == transfer_id)
+            .order_by(InventoryTransferItem.id)
+        )
         return list(self.db.scalars(stmt).all())

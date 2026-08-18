@@ -42,9 +42,7 @@ class GetReturnEligibilityUsecase:
         self.orders = SalesOrderModule(db)
         self.query = ReturnEligibilityQuery(db)
 
-    def execute(
-        self, *, account_id: int, order_id: int
-    ) -> list[ReturnableOrderItem]:
+    def execute(self, *, account_id: int, order_id: int) -> list[ReturnableOrderItem]:
         order = self.orders.get_by_id(order_id)
         if not order:
             raise AppError(code=ErrorCode.ORDER_NOT_FOUND)

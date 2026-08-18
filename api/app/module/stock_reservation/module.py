@@ -16,9 +16,11 @@ class StockReservationModule:
         return entity
 
     def list_by_order_item(self, order_item_id: int) -> list[StockReservation]:
-        stmt = select(StockReservation).where(
-            StockReservation.order_item_id == order_item_id
-        ).order_by(StockReservation.id)
+        stmt = (
+            select(StockReservation)
+            .where(StockReservation.order_item_id == order_item_id)
+            .order_by(StockReservation.id)
+        )
         return list(self.db.scalars(stmt).all())
 
     def list_by_order_items(

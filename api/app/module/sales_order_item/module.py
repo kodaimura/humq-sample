@@ -31,9 +31,11 @@ class SalesOrderItemModule:
         return entity
 
     def list_by_order(self, order_id: int) -> list[SalesOrderItem]:
-        stmt = select(SalesOrderItem).where(
-            SalesOrderItem.order_id == order_id
-        ).order_by(SalesOrderItem.id)
+        stmt = (
+            select(SalesOrderItem)
+            .where(SalesOrderItem.order_id == order_id)
+            .order_by(SalesOrderItem.id)
+        )
         return list(self.db.scalars(stmt).all())
 
     def get_by_id(self, order_item_id: int) -> SalesOrderItem | None:

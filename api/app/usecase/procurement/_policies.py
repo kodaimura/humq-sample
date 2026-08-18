@@ -63,7 +63,9 @@ def validate_purchase_lines(lines: Iterable[PurchaseLine]) -> list[PurchaseLine]
 
 def purchase_totals(lines: Iterable[PurchaseLine]) -> TaxedAmount:
     validated = validate_purchase_lines(lines)
-    return taxed_amount(line_subtotal(line.unit_cost, line.quantity) for line in validated)
+    return taxed_amount(
+        line_subtotal(line.unit_cost, line.quantity) for line in validated
+    )
 
 
 def validate_receipt_line(line: ReceiptLine) -> None:
@@ -87,7 +89,10 @@ def purchase_order_status(ordered_and_received: Iterable[tuple[int, int]]) -> st
     quantities = list(ordered_and_received)
     if not quantities:
         raise ValueError("purchase order must contain lines")
-    if any(ordered <= 0 or received < 0 or received > ordered for ordered, received in quantities):
+    if any(
+        ordered <= 0 or received < 0 or received > ordered
+        for ordered, received in quantities
+    ):
         raise ValueError("invalid purchase order quantities")
     if all(ordered == received for ordered, received in quantities):
         return PurchaseOrderStatus.RECEIVED.value
@@ -96,8 +101,24 @@ def purchase_order_status(ordered_and_received: Iterable[tuple[int, int]]) -> st
     return PurchaseOrderStatus.APPROVED.value
 
 
-def reorder_decision(*, on_hand_quantity: int, reserved_quantity: int, reorder_point: int, target_stock_quantity: int, inbound_quantity: int = 0) -> ReorderDecision:
-    if min(on_hand_quantity, reserved_quantity, reorder_point, target_stock_quantity, inbound_quantity) < 0:
+def reorder_decision(
+    *,
+    on_hand_quantity: int,
+    reserved_quantity: int,
+    reorder_point: int,
+    target_stock_quantity: int,
+    inbound_quantity: int = 0,
+) -> ReorderDecision:
+    if (
+        min(
+            on_hand_quantity,
+            reserved_quantity,
+            reorder_point,
+            target_stock_quantity,
+            inbound_quantity,
+        )
+        < 0
+    ):
         raise ValueError("inventory planning quantities must not be negative")
     if reserved_quantity > on_hand_quantity:
         raise ValueError("reserved quantity exceeds on-hand quantity")
@@ -106,5 +127,16 @@ def reorder_decision(*, on_hand_quantity: int, reserved_quantity: int, reorder_p
     available = on_hand_quantity - reserved_quantity + inbound_quantity
     should_reorder = available <= reorder_point
     recommended = max(target_stock_quantity - available, 0) if should_reorder else 0
-    reason = "BELOW_REORDER_POINT" if available < reorder_point else "AT_REORDER_POINT" if should_reorder else "SUFFICIENT_STOCK"
-    return ReorderDecision(should_reorder=should_reorder, available_quantity=available, recommended_quantity=recommended, reason=reason)
+    reason = (
+        "BELOW_REORDER_POINT"
+        if available < reorder_point
+        else "AT_REORDER_POINT"
+        if should_reorder
+        else "SUFFICIENT_STOCK"
+    )
+    return ReorderDecision(
+        should_reorder=should_reorder,
+        available_quantity=available,
+        recommended_quantity=recommended,
+        reason=reason,
+    )

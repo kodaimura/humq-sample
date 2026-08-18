@@ -19,7 +19,9 @@ class ProductCategoryModule:
         return self.db.get(ProductCategory, category_id)
 
     def list_by_organization(self, organization_id: int) -> list[ProductCategory]:
-        stmt = select(ProductCategory).where(
-            ProductCategory.organization_id == organization_id
-        ).order_by(ProductCategory.name)
+        stmt = (
+            select(ProductCategory)
+            .where(ProductCategory.organization_id == organization_id)
+            .order_by(ProductCategory.name)
+        )
         return list(self.db.scalars(stmt).all())

@@ -48,7 +48,10 @@ class OrderOverviewQuery:
                 SalesOrderItem.order_id.label("order_id"),
                 func.sum(
                     case(
-                        (StockReservation.status == ReservationStatus.ACTIVE.value, StockReservation.quantity),
+                        (
+                            StockReservation.status == ReservationStatus.ACTIVE.value,
+                            StockReservation.quantity,
+                        ),
                         else_=0,
                     )
                 ).label("reserved_quantity"),
@@ -62,7 +65,10 @@ class OrderOverviewQuery:
                 Shipment.order_id.label("order_id"),
                 func.sum(
                     case(
-                        (Shipment.status == ShipmentStatus.SHIPPED.value, ShipmentItem.quantity),
+                        (
+                            Shipment.status == ShipmentStatus.SHIPPED.value,
+                            ShipmentItem.quantity,
+                        ),
                         else_=0,
                     )
                 ).label("shipped_quantity"),
@@ -80,14 +86,22 @@ class OrderOverviewQuery:
                 SalesOrder.requested_ship_date,
                 SalesOrder.total_amount,
                 func.coalesce(item_totals.c.item_count, 0).label("item_count"),
-                func.coalesce(item_totals.c.ordered_quantity, 0).label("ordered_quantity"),
-                func.coalesce(reservation_totals.c.reserved_quantity, 0).label("reserved_quantity"),
-                func.coalesce(shipped_totals.c.shipped_quantity, 0).label("shipped_quantity"),
+                func.coalesce(item_totals.c.ordered_quantity, 0).label(
+                    "ordered_quantity"
+                ),
+                func.coalesce(reservation_totals.c.reserved_quantity, 0).label(
+                    "reserved_quantity"
+                ),
+                func.coalesce(shipped_totals.c.shipped_quantity, 0).label(
+                    "shipped_quantity"
+                ),
                 SalesOrder.created_at,
             )
             .join(Organization, Organization.id == SalesOrder.customer_organization_id)
             .outerjoin(item_totals, item_totals.c.order_id == SalesOrder.id)
-            .outerjoin(reservation_totals, reservation_totals.c.order_id == SalesOrder.id)
+            .outerjoin(
+                reservation_totals, reservation_totals.c.order_id == SalesOrder.id
+            )
             .outerjoin(shipped_totals, shipped_totals.c.order_id == SalesOrder.id)
             .where(SalesOrder.seller_organization_id == seller_organization_id)
             .order_by(SalesOrder.id.desc())

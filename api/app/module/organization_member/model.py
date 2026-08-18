@@ -10,7 +10,9 @@ from app.module.business_types import MemberRole
 class OrganizationMember(Base):
     __tablename__ = "organization_member"
     __table_args__ = (
-        UniqueConstraint("organization_id", "account_id", name="uq_organization_member"),
+        UniqueConstraint(
+            "organization_id", "account_id", name="uq_organization_member"
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -27,5 +29,8 @@ class OrganizationMember(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )

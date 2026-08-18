@@ -31,7 +31,9 @@ class CancelOrderUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit_logs = AuditLogModule(db)
 
-    def execute(self, *, account_id: int, order_id: int, reason: str | None) -> SalesOrder:
+    def execute(
+        self, *, account_id: int, order_id: int, reason: str | None
+    ) -> SalesOrder:
         order = self.orders.get_for_update(order_id)
         if not order:
             raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
@@ -58,9 +60,7 @@ class CancelOrderUsecase:
             )
             if not balance or not self.balances.release(balance, reservation.quantity):
                 raise AppError(code=ErrorCode.INVALID_ORDER_STATE)
-            self.reservations.set_status(
-                reservation, ReservationStatus.RELEASED.value
-            )
+            self.reservations.set_status(reservation, ReservationStatus.RELEASED.value)
             self.ledger.record(
                 warehouse_id=reservation.warehouse_id,
                 product_id=reservation.product_id,

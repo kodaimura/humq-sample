@@ -31,14 +31,20 @@ class ReturnReceiptDisposition:
 
     @property
     def restocked_quantity(self) -> int:
-        return self.quantity if self.disposition == ReturnDisposition.RESTOCK.value else 0
+        return (
+            self.quantity if self.disposition == ReturnDisposition.RESTOCK.value else 0
+        )
 
     @property
     def discarded_quantity(self) -> int:
-        return self.quantity if self.disposition == ReturnDisposition.DISCARD.value else 0
+        return (
+            self.quantity if self.disposition == ReturnDisposition.DISCARD.value else 0
+        )
 
 
-def validate_return_request(lines: Iterable[ReturnRequestLine]) -> list[ReturnRequestLine]:
+def validate_return_request(
+    lines: Iterable[ReturnRequestLine],
+) -> list[ReturnRequestLine]:
     materialized = list(lines)
     if not materialized:
         raise ValueError("at least one return line is required")
@@ -57,13 +63,18 @@ def validate_return_request(lines: Iterable[ReturnRequestLine]) -> list[ReturnRe
 
 def requested_credit(lines: Iterable[ReturnRequestLine]) -> Decimal:
     validated = validate_return_request(lines)
-    return sum_money(line_subtotal(line.unit_credit, line.requested_quantity) for line in validated)
+    return sum_money(
+        line_subtotal(line.unit_credit, line.requested_quantity) for line in validated
+    )
 
 
 def validate_return_disposition(disposition: ReturnReceiptDisposition) -> None:
     if disposition.quantity <= 0:
         raise ValueError("return receipt quantity must be positive")
-    if disposition.disposition not in {ReturnDisposition.RESTOCK.value, ReturnDisposition.DISCARD.value}:
+    if disposition.disposition not in {
+        ReturnDisposition.RESTOCK.value,
+        ReturnDisposition.DISCARD.value,
+    }:
         raise ValueError("unknown return disposition")
 
 
@@ -71,7 +82,10 @@ def return_status(requested_and_received: Iterable[tuple[int, int]]) -> str:
     quantities = list(requested_and_received)
     if not quantities:
         raise ValueError("sales return must contain lines")
-    if any(requested <= 0 or received < 0 or received > requested for requested, received in quantities):
+    if any(
+        requested <= 0 or received < 0 or received > requested
+        for requested, received in quantities
+    ):
         raise ValueError("invalid return quantities")
     if all(requested == received for requested, received in quantities):
         return SalesReturnStatus.COMPLETED.value

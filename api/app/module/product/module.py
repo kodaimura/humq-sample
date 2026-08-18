@@ -43,5 +43,9 @@ class ProductModule:
         return self.db.scalars(stmt).first()
 
     def list_by_organization(self, organization_id: int) -> list[Product]:
-        stmt = select(Product).where(Product.organization_id == organization_id).order_by(Product.sku)
+        stmt = (
+            select(Product)
+            .where(Product.organization_id == organization_id)
+            .order_by(Product.sku)
+        )
         return list(self.db.scalars(stmt).all())

@@ -49,7 +49,10 @@ def build_invoice_lines(lines: Iterable[InvoiceableLine]) -> list[InvoiceLineAmo
         references.add(line.reference_id)
         if line.shipped_quantity <= 0:
             raise ValueError("shipped quantity must be positive")
-        if line.previously_invoiced_quantity < 0 or line.previously_invoiced_quantity > line.shipped_quantity:
+        if (
+            line.previously_invoiced_quantity < 0
+            or line.previously_invoiced_quantity > line.shipped_quantity
+        ):
             raise ValueError("invalid previously invoiced quantity")
         if line.unit_price < 0:
             raise ValueError("unit price must not be negative")
@@ -58,7 +61,16 @@ def build_invoice_lines(lines: Iterable[InvoiceableLine]) -> list[InvoiceLineAmo
             continue
         subtotal = line_subtotal(line.unit_price, quantity)
         tax_amount = tax_for(subtotal)
-        results.append(InvoiceLineAmount(reference_id=line.reference_id, quantity=quantity, unit_price=line.unit_price, subtotal=subtotal, tax_amount=tax_amount, total_amount=subtotal + tax_amount))
+        results.append(
+            InvoiceLineAmount(
+                reference_id=line.reference_id,
+                quantity=quantity,
+                unit_price=line.unit_price,
+                subtotal=subtotal,
+                tax_amount=tax_amount,
+                total_amount=subtotal + tax_amount,
+            )
+        )
     if not results:
         raise ValueError("shipment has no invoiceable quantity")
     return results
@@ -70,10 +82,14 @@ def invoice_totals(lines: Iterable[InvoiceLineAmount]) -> TaxedAmount:
         raise ValueError("invoice must contain lines")
     subtotal = sum_money(line.subtotal for line in materialized)
     tax_amount = sum_money(line.tax_amount for line in materialized)
-    return TaxedAmount(subtotal=subtotal, tax_amount=tax_amount, total_amount=subtotal + tax_amount)
+    return TaxedAmount(
+        subtotal=subtotal, tax_amount=tax_amount, total_amount=subtotal + tax_amount
+    )
 
 
-def validate_payment_allocations(payment_amount: Decimal, allocations: Iterable[PaymentAllocationRequest]) -> Decimal:
+def validate_payment_allocations(
+    payment_amount: Decimal, allocations: Iterable[PaymentAllocationRequest]
+) -> Decimal:
     materialized = list(allocations)
     if payment_amount <= 0:
         raise ValueError("payment amount must be positive")

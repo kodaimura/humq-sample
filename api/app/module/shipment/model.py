@@ -11,7 +11,9 @@ class Shipment(Base):
     __tablename__ = "shipment"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    shipment_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    shipment_number: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True
+    )
     order_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("sales_order.id"), nullable=False, index=True
     )
@@ -32,5 +34,8 @@ class Shipment(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )

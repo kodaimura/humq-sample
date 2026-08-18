@@ -27,9 +27,11 @@ class SalesOrderModule:
         return self.db.scalars(stmt).first()
 
     def list_by_seller(self, seller_organization_id: int) -> list[SalesOrder]:
-        stmt = select(SalesOrder).where(
-            SalesOrder.seller_organization_id == seller_organization_id
-        ).order_by(SalesOrder.id.desc())
+        stmt = (
+            select(SalesOrder)
+            .where(SalesOrder.seller_organization_id == seller_organization_id)
+            .order_by(SalesOrder.id.desc())
+        )
         return list(self.db.scalars(stmt).all())
 
     def set_totals(
@@ -51,11 +53,15 @@ class SalesOrderModule:
         entity.status = status
         entity.version += 1
         now = datetime.now(timezone.utc)
-        if status in {
-            OrderStatus.CONFIRMED.value,
-            OrderStatus.PARTIALLY_ALLOCATED.value,
-            OrderStatus.ALLOCATED.value,
-        } and entity.confirmed_at is None:
+        if (
+            status
+            in {
+                OrderStatus.CONFIRMED.value,
+                OrderStatus.PARTIALLY_ALLOCATED.value,
+                OrderStatus.ALLOCATED.value,
+            }
+            and entity.confirmed_at is None
+        ):
             entity.confirmed_at = now
         if status == OrderStatus.CANCELED.value:
             entity.canceled_at = now

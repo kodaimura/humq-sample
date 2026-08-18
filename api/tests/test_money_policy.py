@@ -2,7 +2,16 @@ import unittest
 from decimal import Decimal
 
 from app.core.error import AppError
-from app.usecase._policies import line_subtotal, money, prorate_amount, resolve_login_id, sum_money, tax_for, taxed_amount, total_with_tax
+from app.usecase._policies import (
+    line_subtotal,
+    money,
+    prorate_amount,
+    resolve_login_id,
+    sum_money,
+    tax_for,
+    taxed_amount,
+    total_with_tax,
+)
 
 
 class SharedPolicyTest(unittest.TestCase):
@@ -66,11 +75,16 @@ class MoneyPolicyTest(unittest.TestCase):
 
     def test_proration_preserves_total(self):
         allocations = prorate_amount(Decimal("10.00"), [1, 1, 1])
-        self.assertEqual(allocations, [Decimal("3.33"), Decimal("3.33"), Decimal("3.34")])
+        self.assertEqual(
+            allocations, [Decimal("3.33"), Decimal("3.33"), Decimal("3.34")]
+        )
         self.assertEqual(sum(allocations), Decimal("10.00"))
 
     def test_proration_supports_zero_weight(self):
-        self.assertEqual(prorate_amount(Decimal("10.00"), [0, 1]), [Decimal("0.00"), Decimal("10.00")])
+        self.assertEqual(
+            prorate_amount(Decimal("10.00"), [0, 1]),
+            [Decimal("0.00"), Decimal("10.00")],
+        )
 
     def test_proration_rejects_invalid_weights(self):
         for weights in ([], [0, 0], [-1, 2]):
