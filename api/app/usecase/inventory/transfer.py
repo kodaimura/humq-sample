@@ -10,7 +10,7 @@ from app.module.inventory_transfer import InventoryTransfer, InventoryTransferMo
 from app.module.inventory_transfer_item import InventoryTransferItemModule
 from app.module.product import ProductModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -32,14 +32,14 @@ class CreateTransferInput:
 class CreateTransferUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)
         self.transfers = InventoryTransferModule(db)
         self.items = InventoryTransferItemModule(db)
 
     def execute(self, input: CreateTransferInput) -> InventoryTransfer:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
@@ -77,7 +77,7 @@ class ShipTransferUsecase:
         self.balances = InventoryBalanceModule(db)
         self.ledger = InventoryLedgerModule(db)
         self.warehouses = WarehouseModule(db)
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
 
     def execute(self, *, account_id: int, transfer_id: int) -> InventoryTransfer:
         transfer = self.transfers.get_for_update(transfer_id)
@@ -85,7 +85,7 @@ class ShipTransferUsecase:
             raise AppError(code=ErrorCode.TRANSFER_NOT_FOUND)
         source = self.warehouses.get_by_id(transfer.source_warehouse_id)
         assert source is not None
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=source.organization_id,
             account_id=account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
@@ -126,7 +126,7 @@ class ReceiveTransferUsecase:
         self.balances = InventoryBalanceModule(db)
         self.ledger = InventoryLedgerModule(db)
         self.warehouses = WarehouseModule(db)
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
 
     def execute(self, *, account_id: int, transfer_id: int) -> InventoryTransfer:
         transfer = self.transfers.get_for_update(transfer_id)
@@ -134,7 +134,7 @@ class ReceiveTransferUsecase:
             raise AppError(code=ErrorCode.TRANSFER_NOT_FOUND)
         destination = self.warehouses.get_by_id(transfer.destination_warehouse_id)
         assert destination is not None
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=destination.organization_id,
             account_id=account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},

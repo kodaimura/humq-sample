@@ -1,8 +1,8 @@
-name: humq-sample2
+name: humq-sample
 
 services:
   web:
-    image: humq-sample2-web-prod
+    image: humq-sample-web-prod
     build:
       context: .
       dockerfile: Dockerfile.prod

@@ -239,3 +239,76 @@ test("B2B order fulfillment reserves, ships, and releases inventory", async () =
   ).json;
   assert.equal(dashboard.shipped_order_count, 1);
 });
+
+test("authorization operations and caller rollbacks preserve boundaries", async () => {
+  const client = new ApiClient();
+  const owner = await createAuthenticatedAccount(client, "boundary-owner");
+  const outsider = await createAuthenticatedAccount(client, "boundary-outsider");
+  const ownerAuth = { token: owner.accessToken };
+  const outsiderAuth = { token: outsider.accessToken };
+
+  const seller = expectStatus(
+    await client.post(
+      "/api/organizations",
+      {
+        code: uniqueCode("boundary-seller"),
+        name: "Boundary Seller",
+        kind: "INTERNAL",
+      },
+      ownerAuth,
+    ),
+    201,
+    "create boundary seller",
+  ).json.organization;
+  const customer = expectStatus(
+    await client.post(
+      "/api/organizations",
+      {
+        code: uniqueCode("boundary-customer"),
+        name: "Boundary Customer",
+        kind: "CUSTOMER",
+      },
+      ownerAuth,
+    ),
+    201,
+    "create boundary customer",
+  ).json.organization;
+
+  expectStatus(
+    await client.post(
+      `/api/organizations/${seller.id}/product-categories`,
+      { code: uniqueCode("denied"), name: "Denied Category" },
+      outsiderAuth,
+    ),
+    403,
+    "reject an account outside the organization",
+  );
+  expectStatus(
+    await client.post(
+      `/api/organizations/${seller.id}/product-categories`,
+      { code: uniqueCode("allowed"), name: "Allowed Category" },
+      ownerAuth,
+    ),
+    201,
+    "allow an organization administrator",
+  );
+
+  expectStatus(
+    await client.post(
+      `/api/organizations/${seller.id}/orders`,
+      {
+        customer_organization_id: customer.id,
+        items: [{ product_id: 2147483647, quantity: 1 }],
+      },
+      ownerAuth,
+    ),
+    404,
+    "roll back an order after a later validation fails",
+  );
+  const orders = expectStatus(
+    await client.get(`/api/organizations/${seller.id}/orders`, ownerAuth),
+    200,
+    "list orders after rollback",
+  ).json.orders;
+  assert.equal(orders.length, 0);
+});

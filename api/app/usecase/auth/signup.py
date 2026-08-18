@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
+from app.core.config import config
 from app.core.crypto import hash_password
 from app.core.error import AppError, ErrorCode
 from app.module.account.module import AccountModule, Account
-from app.usecase.helper import resolve_login_id
+from app.usecase._policies import resolve_login_id
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,14 @@ class SignupUsecase:
         self.module = AccountModule(db)
 
     def execute(self, input: SignupInput) -> Account:
-        login_id = resolve_login_id(input.login_id, input.email)
+        if not config.ENABLE_SIGNUP:
+            raise AppError(code=ErrorCode.FORBIDDEN)
+
+        login_id = resolve_login_id(
+            input.login_id,
+            input.email,
+            login_id_mode=config.AUTH_LOGIN_ID_MODE,
+        )
 
         existing_login_id = self.module.get_by_login_id(login_id)
         if existing_login_id:
@@ -34,13 +42,11 @@ class SignupUsecase:
 
         hashed = hash_password(input.password)
         account = self.module.create(
-            Account(
-                login_id=login_id,
-                email=input.email,
-                password_hash=hashed,
-                first_name=input.first_name,
-                last_name=input.last_name,
-            )
+            login_id=login_id,
+            email=input.email,
+            password_hash=hashed,
+            first_name=input.first_name,
+            last_name=input.last_name,
         )
 
         self.db.commit()

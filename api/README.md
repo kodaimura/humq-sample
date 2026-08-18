@@ -1,6 +1,8 @@
 # HUMQ Flow API
 
-HUMQ Flow の FastAPI バックエンドです。業務処理は Handler、Usecase、Module、Query に分離しています。
+HUMQ Flow の FastAPI バックエンドです。42 テーブルを使った受注・在庫・出荷・調達・返品・請求業務を、HUMQ の4責務である Handler、Usecase、Module、Query に分離しています。
+
+Policy と Operation は独立した層ではなく、Usecase 責務の内部実装です。純粋な共有ルールは `app/usecase/<domain>/_policies.py`、Module や Query を使う共有業務処理は所有ドメインの `_operations.py` に配置します。先頭の `_` は内部ファイルであることを示し、Operation は呼び出し元 Usecase の Session を共有して commit を行いません。
 
 ## Create a project
 
@@ -29,13 +31,23 @@ required for normal development.
 make build
 make up
 make migrate
+make seed
 ```
+
+From a fresh clone, `make demo` builds the images, migrates the database, loads
+the demo dataset, and starts the application. The seed is development-only and
+idempotent. Sign in with `demo@example.com` / `HumqDemo123!` and select
+any organization from the header. Every seeded organization has its own catalog,
+warehouse, inventory, procurement, and sales data; `HUMQ製造株式会社` contains
+the complete end-to-end workflow.
 
 Useful commands:
 
 ```sh
 make logs
 make exec
+make seed
+make demo
 make check
 make test
 make test_e2e
@@ -62,4 +74,4 @@ make up ENV=prod
 ```
 
 The development database is stored in the Docker named volume
-`humq-sample2_postgres_data`.
+`humq-sample_postgres_data`.

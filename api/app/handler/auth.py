@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import config
 from app.core.database import get_db
-from app.core.error import AppError, ErrorCode
 from app.core.jwt import verify_refresh_token
 from app.core.response import ApiResponse
 from app.handler.dto.auth import (
@@ -31,9 +30,6 @@ router = APIRouter()
 
 @router.post("/auth/signup", response_model=SignupResponse)
 def signup(request: SignupRequest, response: Response, db: Session = Depends(get_db)):
-    if not config.ENABLE_SIGNUP:
-        raise AppError(code=ErrorCode.FORBIDDEN)
-
     usecase = SignupUsecase(db)
     account = usecase.execute(
         SignupInput(

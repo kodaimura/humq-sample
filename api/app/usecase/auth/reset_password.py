@@ -39,11 +39,9 @@ class ResetPasswordUsecase:
         if not account:
             raise AppError(code=ErrorCode.ACCOUNT_NOT_FOUND)
 
-        account.password_hash = hash_password(input.new_password)
-        account.token_version += 1
-        self.account_module.update(account)
-
-        token.used_at = now
-        self.token_module.update(token)
+        self.account_module.change_password(
+            account, hash_password(input.new_password)
+        )
+        self.token_module.mark_used(token, used_at=now)
 
         self.db.commit()

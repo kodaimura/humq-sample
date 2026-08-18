@@ -50,8 +50,8 @@
 .card {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+  border-radius: 4px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.045);
   min-width: 0;
   padding: 1.35rem;
 }
@@ -94,7 +94,7 @@
 
 .textarea {
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 3px;
   font: inherit;
   min-height: 82px;
   padding: 0.7rem 0.8rem;
@@ -123,7 +123,10 @@
   padding: 0.8rem 0.65rem;
   text-align: left;
   vertical-align: middle;
+  white-space: nowrap;
 }
+
+.table .actions { flex-wrap: nowrap; }
 
 .table th {
   color: #64748b;
@@ -138,7 +141,7 @@
 
 .badge {
   background: #eff6ff;
-  border-radius: 999px;
+  border-radius: 3px;
   color: #1d4ed8;
   display: inline-flex;
   font-size: 0.7rem;
@@ -172,7 +175,7 @@
 .metric {
   background: linear-gradient(145deg, #fff, #f8fafc);
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 4px;
   padding: 1.2rem;
 }
 

@@ -1,4 +1,4 @@
 version=1
-project=humq-sample2
+project=humq-sample
 pattern=fast-react
 description=FastAPI + React

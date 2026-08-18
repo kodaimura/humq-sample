@@ -1,77 +1,74 @@
-# HUMQ Flow
+# HUMQ Sample
 
-HUMQ の設計方針を、中規模の業務システムで検証するための B2B 受注・在庫・出荷管理サンプルです。
+**Language:** English | [日本語](README.ja.md)
 
-販売組織と取引先、商品・倉庫、在庫台帳、受注、引当、出荷までを一つの業務フローとして実装しています。データベースは認証を含む 24 テーブルで構成しています。
+A B2B order, inventory, and shipping management sample for validating HUMQ's design principles in a medium-scale business system.
 
-## 主な機能
+It implements a single end-to-end business flow covering selling organizations and counterparties, products and warehouses, procurement, inventory ledgers, sales orders, allocation, shipping, returns, invoicing, and payments.
 
-- 組織、取引先、所属メンバー、住所の管理
-- 商品カテゴリ、商品、取引先別単価、倉庫の管理
-- 在庫調整、倉庫別在庫、在庫台帳、倉庫間移動
-- 受注登録、在庫引当、部分引当、キャンセル
-- 出荷指示、出荷確定、追跡番号、受注・在庫への連動
-- 業務ダッシュボード、監査ログ、Outbox イベント
+## Features
 
-## 業務フロー
+- Organizations, counterparties, members, and addresses
+- Product categories, products, customer-specific pricing, and warehouses
+- Supplier products, reorder points, replenishment recommendations, purchase orders, partial deliveries, inspection, and receiving
+- Inventory adjustments, warehouse inventory, inventory ledgers, and warehouse transfers
+- Sales order entry, inventory allocation, partial allocation, and cancellation
+- Shipment creation, shipment confirmation, tracking numbers, and order/inventory updates
+- Return eligibility, return approval, partial receipt, restocking, and disposal
+- Shipment-based invoicing, invoice issuance, split payments, payment allocation, and receivables
+- Operations dashboard, audit logs, and Outbox events
 
-```mermaid
-flowchart LR
-    A["商品・倉庫を登録"] --> B["初期在庫を登録"]
-    B --> C["受注を登録"]
-    C --> D["倉庫在庫を引当"]
-    D --> E["出荷指示を作成"]
-    E --> F["出荷を確定"]
-    F --> G["在庫・受注・台帳を更新"]
-```
-
-## HUMQ アーキテクチャ
-
-書き込み処理は `Handler -> Usecase -> Module`、複数テーブルを横断する読み取りは `Query` に分離しています。Module は原則として一つのテーブルを担当し、トランザクション境界は Usecase が所有します。
+## Business Flow
 
 ```mermaid
 flowchart LR
-    UI["React Operations Console"] --> API["FastAPI Handler"]
-    API --> UC["Usecase"]
-    UC --> M1["Organization Module"]
-    UC --> M2["Order Module"]
-    UC --> M3["Inventory Module"]
-    API --> Q["Cross-table Query"]
-    M1 --> DB[(PostgreSQL)]
-    M2 --> DB
-    M3 --> DB
-    Q --> DB
+    A["Register products and warehouses"] --> B["Load opening inventory"]
+    B --> C["Create a sales order"]
+    C --> D["Allocate warehouse inventory"]
+    D --> E["Create a shipment"]
+    E --> F["Confirm shipment"]
+    F --> G["Update inventory, order, and ledger"]
+    H["Approve a purchase order"] --> I["Receive a partial delivery"]
+    I --> B
+    F --> J["Approve and receive a return"]
+    J --> B
+    F --> K["Issue an invoice"]
+    K --> L["Allocate a payment"]
 ```
 
-代表的な一連の処理で、以下を確認できます。
+## HUMQ
 
-- 受注確定時に複数倉庫の利用可能在庫を検索し、引当を作成する
-- 出荷確定時に引当を消し込み、実在庫と在庫台帳を同一トランザクションで更新する
-- 受注・出荷の状態遷移履歴と監査ログを残す
-- 外部連携用イベントを Outbox に保存する
+[github.com/kodaimura/humq](https://github.com/kodaimura/humq)
 
-## テーブル構成
+## Project Size
 
-| 領域 | テーブル | 数 |
-| --- | --- | ---: |
-| 認証 | `account`, `password_reset_token` | 2 |
-| 組織 | `organization`, `organization_member`, `organization_address` | 3 |
-| 商品 | `product_category`, `product`, `customer_product_price` | 3 |
-| 在庫 | `warehouse`, `inventory_balance`, `inventory_ledger`, `inventory_adjustment`, `inventory_adjustment_item`, `inventory_transfer`, `inventory_transfer_item` | 7 |
-| 受注 | `sales_order`, `sales_order_item`, `sales_order_status_history`, `stock_reservation` | 4 |
-| 出荷 | `shipment`, `shipment_item`, `shipment_status_history` | 3 |
-| 基盤 | `outbox_event`, `audit_log` | 2 |
-| 合計 |  | **24** |
+- Python: 10,000+ lines, including `api/app` and Alembic
+- TypeScript / TSX: approximately 3,700 lines
+- PostgreSQL: 42 tables
+- Python unit tests: 59
+- API E2E scenarios: 10
 
-## 開発環境
+## Getting Started
 
-Docker があれば起動できます。
+Docker is the only prerequisite.
 
 ```sh
-make build
-make up
-make migrate
+git clone https://github.com/kodaimura/humq-sample.git
+cd humq-sample
+make demo
 ```
+
+`make demo` builds the images, runs database migrations, loads the demo data, and starts the application. Run `make seed` to load only the demo data. The seed command is idempotent and does not duplicate existing demo data.
+
+### Demo Account
+
+After `make demo` completes, sign in to the Web application with:
+
+- Login ID: `demo@example.com`
+- Password: `HumqDemo123!`
+- Primary organization: `HUMQ製造株式会社`
+
+### URLs
 
 - Web: http://localhost:3000
 - API: http://localhost:8000/api
@@ -79,9 +76,16 @@ make migrate
 - Health: http://localhost:8000/health
 - MailHog: http://localhost:8025
 
-サインアップ後、最初に `/organizations` で自社組織と取引先を作成してください。ヘッダーで自社組織を選ぶと、商品・在庫・受注・出荷の各画面を操作できます。
+The seed contains 20 products with Japanese names, 8 warehouses, 3 customers, 2 suppliers, and their associated inventory and replenishment settings. Products, warehouses, inventory, purchase orders, and sales orders are available for every counterparty organization, so switching organizations in the header always displays business data. `HUMQ製造株式会社` includes draft, partially allocated, allocated, shipped, and canceled sales orders; draft, partially received, and received purchase orders; in-transit and received warehouse transfers; returns; invoices; and partially and fully paid transactions.
 
-## テスト
+To recreate all data, remove the development database volume and run the demo again.
+
+```sh
+make down_volumes
+make demo
+```
+
+## Testing
 
 ```sh
 make check
@@ -89,11 +93,11 @@ make -C api test_e2e
 make -C api routes
 ```
 
-API の E2E テストは、アカウント作成から在庫調整、受注、部分引当、キャンセル、倉庫間移動、出荷確定、ダッシュボード集計までを通して検証します。
+The API E2E suite covers account creation, inventory adjustments, sales orders, partial allocation, cancellation, warehouse transfers, shipment confirmation, replenishment recommendations, purchase orders, partial deliveries, returns, invoicing, split payments, and receivables.
 
-## ディレクトリ
+## Directories
 
-- `api/`: FastAPI、SQLAlchemy、Alembic、HUMQ の Module / Query / Usecase
-- `web/`: React、TypeScript による業務コンソール
+- `api/`: FastAPI, SQLAlchemy, Alembic, and the HUMQ Modules, Queries, and Usecases
+- `web/`: Operations console built with React and TypeScript
 
-ベースプロジェクトは [webscaf](https://github.com/kodaimura/webscaf) の `fast-react` パターンを利用しています。
+The project is based on the `fast-react` pattern from [webscaf](https://github.com/kodaimura/webscaf).

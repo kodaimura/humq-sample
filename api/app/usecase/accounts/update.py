@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
+from app.core.config import config
 from app.core.crypto import hash_password
 from app.core.error import AppError, ErrorCode
 from app.module.account.module import AccountModule, Account
-from app.usecase.helper import resolve_login_id
+from app.usecase._policies import resolve_login_id
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,11 @@ class UpdateAccountUsecase:
         if not account:
             raise AppError(code=ErrorCode.ACCOUNT_NOT_FOUND)
 
-        login_id = resolve_login_id(input.login_id, input.email)
+        login_id = resolve_login_id(
+            input.login_id,
+            input.email,
+            login_id_mode=config.AUTH_LOGIN_ID_MODE,
+        )
 
         existing_login_id = self.module.get_by_login_id(login_id)
         if existing_login_id and existing_login_id.id != account.id:
@@ -37,15 +42,15 @@ class UpdateAccountUsecase:
             if existing_email and existing_email.id != account.id:
                 raise AppError(code=ErrorCode.EMAIL_ALREADY_EXISTS)
 
-        account.login_id = login_id
-        account.email = input.email
-        account.first_name = input.first_name
-        account.last_name = input.last_name
-
-        if input.password is not None:
-            account.password_hash = hash_password(input.password)
-            account.token_version += 1
-
-        updated_account = self.module.update(account)
+        updated_account = self.module.update_profile(
+            account,
+            login_id=login_id,
+            email=input.email,
+            first_name=input.first_name,
+            last_name=input.last_name,
+            password_hash=(
+                hash_password(input.password) if input.password is not None else None
+            ),
+        )
         self.db.commit()
         return updated_account

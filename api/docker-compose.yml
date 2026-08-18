@@ -1,4 +1,4 @@
-name: humq-sample2
+name: humq-sample
 
 services:
   db:
@@ -23,7 +23,7 @@ services:
       - "${MAILHOG_BIND_HOST:-127.0.0.1}:8025:8025"
 
   api:
-    image: humq-sample2-dev
+    image: humq-sample-dev
     build:
       context: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -70,7 +70,7 @@ services:
     tty: true
 
   migrate:
-    image: humq-sample2-dev
+    image: humq-sample-dev
     build:
       context: .
     profiles:
