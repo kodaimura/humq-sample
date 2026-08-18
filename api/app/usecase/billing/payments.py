@@ -8,12 +8,16 @@ from sqlalchemy.orm import Session
 from app.core.error import AppError, ErrorCode
 from app.module.audit_log import AuditLogModule
 from app.module.business_types import InvoiceStatus, MemberRole, PaymentStatus
-from app.module.invoice import InvoiceModule
+from app.module.invoice import Invoice, InvoiceModule
 from app.module.invoice_status_history import InvoiceStatusHistoryModule
 from app.module.organization import OrganizationModule
 from app.module.outbox_event import OutboxEventModule
 from app.module.payment import Payment, PaymentModule
 from app.module.payment_allocation import PaymentAllocationModule
+from app.usecase.billing.policies import (
+    PaymentAllocationRequest,
+    validate_payment_allocations,
+)
 from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
 
 
@@ -56,12 +60,28 @@ class PostPaymentUsecase:
         payment = self.payments.get_for_update(payment_id)
         if not payment: raise AppError(code=ErrorCode.PAYMENT_NOT_FOUND)
         self.require_role.execute(organization_id=payment.payee_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
-        if payment.status != PaymentStatus.DRAFT.value or not allocations or len({a.invoice_id for a in allocations}) != len(allocations): raise AppError(code=ErrorCode.INVALID_PAYMENT_STATE)
-        if sum((a.amount for a in allocations), Decimal("0.00")) > payment.amount: raise AppError(code=ErrorCode.PAYMENT_ALLOCATION_EXCEEDED)
+        if payment.status != PaymentStatus.DRAFT.value: raise AppError(code=ErrorCode.INVALID_PAYMENT_STATE)
+        resolved_allocations: list[tuple[PaymentAllocationInput, Invoice]] = []
         for requested in allocations:
             invoice = self.invoices.get_for_update(requested.invoice_id)
             if not invoice or invoice.seller_organization_id != payment.payee_organization_id or invoice.customer_organization_id != payment.payer_organization_id: raise AppError(code=ErrorCode.INVOICE_NOT_FOUND)
-            if invoice.status not in {InvoiceStatus.ISSUED.value, InvoiceStatus.PARTIALLY_PAID.value} or requested.amount <= 0 or requested.amount > invoice.balance_due: raise AppError(code=ErrorCode.PAYMENT_ALLOCATION_EXCEEDED)
+            if invoice.status not in {InvoiceStatus.ISSUED.value, InvoiceStatus.PARTIALLY_PAID.value}: raise AppError(code=ErrorCode.PAYMENT_ALLOCATION_EXCEEDED)
+            resolved_allocations.append((requested, invoice))
+        try:
+            validate_payment_allocations(
+                payment.amount,
+                (
+                    PaymentAllocationRequest(
+                        invoice_id=invoice.id,
+                        invoice_balance=invoice.balance_due,
+                        allocation_amount=requested.amount,
+                    )
+                    for requested, invoice in resolved_allocations
+                ),
+            )
+        except ValueError as exc:
+            raise AppError(code=ErrorCode.PAYMENT_ALLOCATION_EXCEEDED) from exc
+        for requested, invoice in resolved_allocations:
             if not self.payments.allocate(payment, requested.amount): raise AppError(code=ErrorCode.PAYMENT_ALLOCATION_EXCEEDED)
             previous = self.invoices.apply_payment(invoice, requested.amount)
             self.allocations.create(payment_id=payment.id, invoice_id=invoice.id, amount=requested.amount, allocated_by_account_id=account_id)

@@ -5,11 +5,9 @@ from app.core.database import get_db
 from app.core.response import ApiResponse
 from app.handler._dependency import get_account_id
 from app.handler.dto.billing import *
-from app.module.business_types import MemberRole
-from app.query.billing_overview import BillingOverviewQuery
+from app.usecase.billing.reads import ListReceivablesUsecase
 from app.usecase.billing.invoices import ChangeInvoiceStatusUsecase, GenerateInvoiceInput, GenerateInvoiceUsecase
 from app.usecase.billing.payments import CreatePaymentInput, CreatePaymentUsecase, PaymentAllocationInput, PostPaymentUsecase
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
 
 
 router = APIRouter(tags=["billing"])
@@ -35,8 +33,9 @@ def void_invoice(invoice_id: int, request: InvoiceStatusRequest, response: Respo
 
 @router.get("/organizations/{organization_id}/receivables", response_model=ReceivablesResponse)
 def receivables(organization_id: int, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    RequireOrganizationRoleUsecase(db).execute(organization_id=organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
-    rows = BillingOverviewQuery(db).receivables(organization_id)
+    rows = ListReceivablesUsecase(db).execute(
+        account_id=account_id, organization_id=organization_id
+    )
     return ApiResponse.ok(data=ReceivablesResponse(receivables=[ReceivableSummaryResponse.model_validate(row, from_attributes=True) for row in rows]), response=response)
 
 

@@ -17,7 +17,7 @@ from app.module.purchase_order import PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
 from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.policy.procurement import purchase_order_status
+from app.usecase.procurement.policies import purchase_order_status
 
 
 @dataclass(frozen=True)

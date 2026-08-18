@@ -3,8 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Iterable
 
-from app.module.business_types import InvoiceStatus
-from app.policy.money import line_subtotal, tax_for, sum_money, TaxedAmount
+from app.usecase.policies import line_subtotal, tax_for, sum_money, TaxedAmount
 
 
 @dataclass(frozen=True)
@@ -94,15 +93,3 @@ def validate_payment_allocations(payment_amount: Decimal, allocations: Iterable[
     if allocated > payment_amount:
         raise ValueError("allocations exceed payment amount")
     return payment_amount - allocated
-
-
-def invoice_status_after_payment(total_amount: Decimal, paid_amount: Decimal) -> str:
-    if total_amount <= 0:
-        raise ValueError("invoice total must be positive")
-    if paid_amount < 0 or paid_amount > total_amount:
-        raise ValueError("invalid paid amount")
-    if paid_amount == 0:
-        return InvoiceStatus.ISSUED.value
-    if paid_amount == total_amount:
-        return InvoiceStatus.PAID.value
-    return InvoiceStatus.PARTIALLY_PAID.value

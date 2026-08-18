@@ -17,7 +17,7 @@ from app.module.sales_return import SalesReturnModule
 from app.module.sales_return_item import SalesReturnItemModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
 from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.policy.returns import return_status
+from app.usecase.returns.policies import return_status
 
 
 @dataclass(frozen=True)

@@ -11,11 +11,10 @@ from app.module.purchase_order.model import PurchaseOrder
 from app.module.purchase_order_item.model import PurchaseOrderItem
 from app.module.reorder_policy.model import ReorderPolicy
 from app.module.warehouse.model import Warehouse
-from app.policy.procurement import reorder_decision
 
 
 @dataclass(frozen=True)
-class ReorderRecommendation:
+class ReorderPolicySnapshot:
     policy_id: int
     warehouse_id: int
     warehouse_name: str
@@ -27,7 +26,6 @@ class ReorderRecommendation:
     available_quantity: int
     reorder_point: int
     target_stock_quantity: int
-    recommended_quantity: int
 
 
 @dataclass(frozen=True)
@@ -47,7 +45,7 @@ class ProcurementOverviewQuery:
     def __init__(self, db: Session):
         self.db = db
 
-    def reorder_recommendations(self, organization_id: int) -> list[ReorderRecommendation]:
+    def reorder_policy_snapshots(self, organization_id: int) -> list[ReorderPolicySnapshot]:
         supplier = Organization.__table__.alias("supplier")
         stmt = (
             select(
@@ -70,18 +68,7 @@ class ProcurementOverviewQuery:
             .where(Warehouse.organization_id == organization_id, ReorderPolicy.active.is_(True))
             .order_by(Warehouse.code, Product.sku)
         )
-        results: list[ReorderRecommendation] = []
-        for row in self.db.execute(stmt):
-            decision = reorder_decision(
-                on_hand_quantity=int(row[8]),
-                reserved_quantity=0,
-                reorder_point=row[9],
-                target_stock_quantity=row[10],
-            )
-            if not decision.should_reorder:
-                continue
-            results.append(ReorderRecommendation(policy_id=row[0], warehouse_id=row[1], warehouse_name=row[2], product_id=row[3], sku=row[4], product_name=row[5], supplier_organization_id=row[6], supplier_name=row[7], available_quantity=decision.available_quantity, reorder_point=row[9], target_stock_quantity=row[10], recommended_quantity=decision.recommended_quantity))
-        return results
+        return [ReorderPolicySnapshot(*row) for row in self.db.execute(stmt)]
 
     def purchase_orders(self, organization_id: int) -> list[PurchaseOrderOverview]:
         stmt = (

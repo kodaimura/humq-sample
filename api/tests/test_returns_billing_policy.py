@@ -2,9 +2,9 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
-from app.module.business_types import InvoiceStatus, ReturnDisposition, SalesReturnStatus
-from app.policy.billing import InvoiceableLine, PaymentAllocationRequest, build_invoice_lines, invoice_status_after_payment, invoice_totals, validate_invoice_dates, validate_payment_allocations
-from app.policy.returns import ReturnEligibility, ReturnReceiptDisposition, ReturnRequestLine, net_restock_quantity, requested_credit, return_status, validate_return_disposition, validate_return_request
+from app.module.business_types import ReturnDisposition, SalesReturnStatus
+from app.usecase.billing.policies import InvoiceableLine, PaymentAllocationRequest, build_invoice_lines, invoice_totals, validate_invoice_dates, validate_payment_allocations
+from app.usecase.returns.policies import ReturnEligibility, ReturnReceiptDisposition, ReturnRequestLine, net_restock_quantity, requested_credit, return_status, validate_return_disposition, validate_return_request
 
 
 class ReturnsPolicyTest(unittest.TestCase):
@@ -94,17 +94,6 @@ class BillingPolicyTest(unittest.TestCase):
         allocation = PaymentAllocationRequest(invoice_id=1, invoice_balance=Decimal("50"), allocation_amount=Decimal("20"))
         with self.assertRaises(ValueError):
             validate_payment_allocations(Decimal("100"), [allocation, allocation])
-
-    def test_invoice_status_follows_paid_amount(self):
-        total = Decimal("100")
-        self.assertEqual(invoice_status_after_payment(total, Decimal("0")), InvoiceStatus.ISSUED.value)
-        self.assertEqual(invoice_status_after_payment(total, Decimal("50")), InvoiceStatus.PARTIALLY_PAID.value)
-        self.assertEqual(invoice_status_after_payment(total, Decimal("100")), InvoiceStatus.PAID.value)
-
-    def test_invoice_status_rejects_overpayment(self):
-        with self.assertRaises(ValueError):
-            invoice_status_after_payment(Decimal("100"), Decimal("101"))
-
 
 if __name__ == "__main__":
     unittest.main()

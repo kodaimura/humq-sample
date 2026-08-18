@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 
-from app.policy.money import line_subtotal, money, prorate_amount, sum_money, tax_for, taxed_amount, total_with_tax
+from app.usecase.policies import line_subtotal, money, prorate_amount, sum_money, tax_for, taxed_amount, total_with_tax
 
 
 class MoneyPolicyTest(unittest.TestCase):

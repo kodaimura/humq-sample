@@ -36,7 +36,9 @@ flowchart LR
 
 ## HUMQ アーキテクチャ
 
-書き込み処理は `Handler -> Usecase -> Module`、複数テーブルを横断する読み取りは `Query`、DB に依存しない金額・数量・状態判定は `Policy` に分離しています。Module は原則として一つのテーブルを担当し、トランザクション境界は Usecase が所有します。
+HUMQ の責務は `Handler`、`Usecase`、`Module`、`Query` の4つです。Handler は必ず Usecase を入口とし、Module は原則として一つのテーブル、Query は複数テーブルを横断する読み取りを担当します。トランザクション境界は Usecase が所有します。
+
+DB に依存しない金額・数量・状態判定は第5の層にはせず、Usecase の内部実装である Policy として配置します。一つの処理だけで使う判定は Usecase ファイル内、同じ業務領域で共有する判定は `app/usecase/<domain>/policies.py`、全領域で共有する金額計算などは `app/usecase/policies.py` に置きます。DB を使って複数 Module を横断する再利用処理は Policy ではなく Usecase 配下の Operation とし、呼び出し元の Session を共有して commit は行いません。
 
 ```mermaid
 flowchart LR
@@ -45,8 +47,8 @@ flowchart LR
     UC --> M1["Organization Module"]
     UC --> M2["Order Module"]
     UC --> M3["Inventory Module"]
-    API --> Q["Cross-table Query"]
-    UC --> P["Pure Python Policy"]
+    UC --> Q["Cross-table Query"]
+    UC -.-> P["Usecase-internal Policy"]
     M1 --> DB[(PostgreSQL)]
     M2 --> DB
     M3 --> DB
@@ -60,7 +62,7 @@ flowchart LR
 - 受注・出荷の状態遷移履歴と監査ログを残す
 - 外部連携用イベントを Outbox に保存する
 - 発注の分納、返品の再入庫・廃棄、複数請求への入金配賦をトランザクション内で処理する
-- Policy を DB なしで単体テストし、Usecase は永続化と業務フローの調整に集中する
+- Usecase 配下の Policy を DB なしで単体テストし、Usecase は判断結果を明示的に業務フローへ組み込む
 
 ## テーブル構成
 
@@ -83,7 +85,7 @@ flowchart LR
 - Python: 10,000 行以上（`api/app`、Alembic を含む）
 - TypeScript / TSX: 約 3,700 行
 - PostgreSQL: 42 テーブル
-- Python 単体テスト: 44 件
+- Python 単体テスト: 46 件
 - API E2E: 9 シナリオ
 
 フロントエンドの画面数を増やすことではなく、サーバー側の業務ルール、状態遷移、排他制御、横断トランザクションを厚くする構成です。

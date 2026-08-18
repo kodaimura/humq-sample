@@ -1,6 +1,8 @@
 # HUMQ Flow API
 
-HUMQ Flow の FastAPI バックエンドです。42 テーブルを使った受注・在庫・出荷・調達・返品・請求業務を、Handler、Usecase、Module、Query、Policy に分離しています。
+HUMQ Flow の FastAPI バックエンドです。42 テーブルを使った受注・在庫・出荷・調達・返品・請求業務を、HUMQ の4責務である Handler、Usecase、Module、Query に分離しています。
+
+純粋な業務ルールは独立した第5層ではなく、Usecase の内部実装として管理します。領域共通のルールは `app/usecase/<domain>/policies.py`、全領域共通のルールは `app/usecase/policies.py` に配置し、単一Usecaseでしか使わない処理はそのファイル内に残します。DB を使う複数 Module 共通処理は Usecase 配下の Operation とし、呼び出し元の Session を共有して commit は行いません。
 
 ## Create a project
 

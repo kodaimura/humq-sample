@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
 import secrets
 
 from sqlalchemy.orm import Session
@@ -16,6 +15,12 @@ from app.module.product import ProductModule
 from app.module.sales_order import SalesOrderModule
 from app.module.shipment import ShipmentModule
 from app.query.billing_overview import BillingOverviewQuery
+from app.usecase.billing.policies import (
+    InvoiceableLine,
+    build_invoice_lines,
+    invoice_totals,
+    validate_invoice_dates,
+)
 from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
 
 
@@ -36,18 +41,29 @@ class GenerateInvoiceUsecase:
         if not shipment: raise AppError(code=ErrorCode.SHIPMENT_NOT_FOUND)
         order = self.orders.get_by_id(shipment.order_id); assert order is not None
         self.require_role.execute(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
-        if shipment.status != ShipmentStatus.SHIPPED.value or input.due_date < input.issue_date: raise AppError(code=ErrorCode.INVALID_INVOICE_STATE)
-        invoiceable = [line for line in self.billing.invoiceable_shipment_items(shipment.id) if line.invoiceable_quantity > 0]
-        if not invoiceable: raise AppError(code=ErrorCode.INVALID_INVOICE_STATE)
+        if shipment.status != ShipmentStatus.SHIPPED.value: raise AppError(code=ErrorCode.INVALID_INVOICE_STATE)
+        invoiceable = self.billing.invoiceable_shipment_items(shipment.id)
+        try:
+            validate_invoice_dates(input.issue_date, input.due_date)
+            calculated_lines = build_invoice_lines(
+                InvoiceableLine(
+                    reference_id=line.shipment_item_id,
+                    shipped_quantity=line.shipped_quantity,
+                    previously_invoiced_quantity=line.invoiced_quantity,
+                    unit_price=line.unit_price,
+                )
+                for line in invoiceable
+            )
+            totals = invoice_totals(calculated_lines)
+        except ValueError as exc:
+            raise AppError(code=ErrorCode.INVALID_INVOICE_STATE) from exc
+        source_lines = {line.shipment_item_id: line for line in invoiceable}
         invoice = self.invoices.create(invoice_number=_new_invoice_number(), seller_organization_id=order.seller_organization_id, customer_organization_id=order.customer_organization_id, order_id=order.id, issue_date=input.issue_date, due_date=input.due_date, created_by_account_id=input.account_id)
-        subtotal = Decimal("0.00"); tax_total = Decimal("0.00")
-        for line in invoiceable:
-            product = self.products.get_by_id(line.product_id); assert product is not None
-            line_subtotal = (line.unit_price * line.invoiceable_quantity).quantize(Decimal("0.01"))
-            tax = (line_subtotal * Decimal("0.10")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.items.create(invoice_id=invoice.id, order_item_id=line.order_item_id, shipment_item_id=line.shipment_item_id, product_id=line.product_id, description=product.name, quantity=line.invoiceable_quantity, unit_price=line.unit_price, subtotal=line_subtotal, tax_amount=tax, total_amount=line_subtotal + tax)
-            subtotal += line_subtotal; tax_total += tax
-        self.invoices.set_totals(invoice, subtotal=subtotal, tax_amount=tax_total, total_amount=subtotal + tax_total)
+        for amount in calculated_lines:
+            source = source_lines[amount.reference_id]
+            product = self.products.get_by_id(source.product_id); assert product is not None
+            self.items.create(invoice_id=invoice.id, order_item_id=source.order_item_id, shipment_item_id=source.shipment_item_id, product_id=source.product_id, description=product.name, quantity=amount.quantity, unit_price=amount.unit_price, subtotal=amount.subtotal, tax_amount=amount.tax_amount, total_amount=amount.total_amount)
+        self.invoices.set_totals(invoice, subtotal=totals.subtotal, tax_amount=totals.tax_amount, total_amount=totals.total_amount)
         self.history.create(invoice_id=invoice.id, from_status=None, to_status=InvoiceStatus.DRAFT.value, reason=None, changed_by_account_id=input.account_id)
         self.audit.record(actor_account_id=input.account_id, action="invoice.generated", resource_type="invoice", resource_id=invoice.id, details={"shipment_id": shipment.id, "total_amount": str(invoice.total_amount)})
         self.db.commit(); return invoice

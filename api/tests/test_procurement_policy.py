@@ -2,7 +2,7 @@ import unittest
 from decimal import Decimal
 
 from app.module.business_types import PurchaseOrderStatus
-from app.policy.procurement import PurchaseLine, ReceiptLine, purchase_order_status, purchase_totals, reorder_decision, validate_purchase_lines, validate_receipt_line
+from app.usecase.procurement.policies import PurchaseLine, ReceiptLine, purchase_order_status, purchase_totals, reorder_decision, validate_purchase_lines, validate_receipt_line
 
 
 class ProcurementPolicyTest(unittest.TestCase):

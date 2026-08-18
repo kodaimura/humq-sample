@@ -5,13 +5,9 @@ from app.core.database import get_db
 from app.core.response import ApiResponse
 from app.handler._dependency import get_account_id
 from app.handler.dto.procurement import *
-from app.query.procurement_overview import ProcurementOverviewQuery
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.module.business_types import MemberRole
-from app.module.purchase_order import PurchaseOrderModule
-from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.usecase.procurement.catalog import ConfigureReorderPolicyInput, ConfigureReorderPolicyUsecase, ConfigureSupplierProductInput, ConfigureSupplierProductUsecase
 from app.usecase.procurement.orders import ChangePurchaseOrderStatusUsecase, CreatePurchaseOrderInput, CreatePurchaseOrderUsecase, PurchaseOrderLineInput
+from app.usecase.procurement.reads import GetPurchaseOrderUsecase, ListPurchaseOrdersUsecase, ListReorderRecommendationsUsecase
 from app.usecase.procurement.receipts import CreateGoodsReceiptInput, CreateGoodsReceiptUsecase, GoodsReceiptLineInput, PostGoodsReceiptUsecase
 
 
@@ -20,12 +16,9 @@ router = APIRouter(tags=["procurement"])
 
 @router.get("/purchase-orders/{purchase_order_id}", response_model=PurchaseOrderDetailsResponse)
 def get_purchase_order(purchase_order_id: int, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    order = PurchaseOrderModule(db).get_by_id(purchase_order_id)
-    if not order:
-        from app.core.error import AppError, ErrorCode
-        raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
-    RequireOrganizationRoleUsecase(db).execute(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
-    items = PurchaseOrderItemModule(db).list_by_order(order.id)
+    order, items = GetPurchaseOrderUsecase(db).execute(
+        account_id=account_id, purchase_order_id=purchase_order_id
+    )
     return ApiResponse.ok(data=PurchaseOrderDetailsResponse(purchase_order=PurchaseOrderResponse.model_validate(order), items=[PurchaseOrderItemResponse.model_validate(item) for item in items]), response=response)
 
 
@@ -43,15 +36,17 @@ def configure_reorder_policy(organization_id: int, request: ReorderPolicyRequest
 
 @router.get("/organizations/{organization_id}/reorder-recommendations", response_model=ReorderRecommendationsResponse)
 def reorder_recommendations(organization_id: int, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    RequireOrganizationRoleUsecase(db).execute(organization_id=organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
-    items = ProcurementOverviewQuery(db).reorder_recommendations(organization_id)
+    items = ListReorderRecommendationsUsecase(db).execute(
+        account_id=account_id, organization_id=organization_id
+    )
     return ApiResponse.ok(data=ReorderRecommendationsResponse(recommendations=[ReorderRecommendationResponse.model_validate(item, from_attributes=True) for item in items]), response=response)
 
 
 @router.get("/organizations/{organization_id}/purchase-orders", response_model=PurchaseOrdersResponse)
 def list_purchase_orders(organization_id: int, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    RequireOrganizationRoleUsecase(db).execute(organization_id=organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
-    items = ProcurementOverviewQuery(db).purchase_orders(organization_id)
+    items = ListPurchaseOrdersUsecase(db).execute(
+        account_id=account_id, organization_id=organization_id
+    )
     return ApiResponse.ok(data=PurchaseOrdersResponse(purchase_orders=[PurchaseOrderOverviewResponse.model_validate(item, from_attributes=True) for item in items]), response=response)
 
 

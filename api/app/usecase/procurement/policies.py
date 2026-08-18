@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Iterable
 
 from app.module.business_types import PurchaseOrderStatus
-from app.policy.money import line_subtotal, taxed_amount, TaxedAmount
+from app.usecase.policies import line_subtotal, taxed_amount, TaxedAmount
 
 
 @dataclass(frozen=True)

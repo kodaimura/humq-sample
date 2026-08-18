@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 import secrets
 
 from sqlalchemy.orm import Session
@@ -17,6 +17,8 @@ from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryM
 from app.module.supplier_product import SupplierProductModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.policies import line_subtotal
+from app.usecase.procurement.policies import PurchaseLine, purchase_totals
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,14 @@ class CreatePurchaseOrderInput:
     expected_date: date | None
     note: str | None
     items: list[PurchaseOrderLineInput]
+
+
+@dataclass(frozen=True)
+class ResolvedPurchaseOrderLine:
+    product_id: int
+    supplier_product_id: int | None
+    quantity: int
+    unit_cost: Decimal
 
 
 class CreatePurchaseOrderUsecase:
@@ -62,8 +72,39 @@ class CreatePurchaseOrderUsecase:
             raise AppError(code=ErrorCode.ORGANIZATION_NOT_FOUND)
         if not warehouse or warehouse.organization_id != input.buyer_organization_id:
             raise AppError(code=ErrorCode.WAREHOUSE_NOT_FOUND)
-        if not input.items or len({item.product_id for item in input.items}) != len(input.items):
-            raise AppError(code=ErrorCode.INVALID_STATE)
+        resolved_lines: list[ResolvedPurchaseOrderLine] = []
+        policy_lines: list[PurchaseLine] = []
+        for line in input.items:
+            product = self.products.get_by_id(line.product_id)
+            supplier_product = self.supplier_products.get(
+                supplier_organization_id=supplier.id, product_id=line.product_id
+            )
+            if not product or product.organization_id != input.buyer_organization_id:
+                raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
+            unit_cost = line.unit_cost or (supplier_product.unit_cost if supplier_product else None)
+            if unit_cost is None:
+                raise AppError(code=ErrorCode.SUPPLIER_PRODUCT_NOT_FOUND)
+            minimum_quantity = supplier_product.minimum_order_quantity if supplier_product else 1
+            resolved_lines.append(
+                ResolvedPurchaseOrderLine(
+                    product_id=product.id,
+                    supplier_product_id=supplier_product.id if supplier_product else None,
+                    quantity=line.quantity,
+                    unit_cost=unit_cost,
+                )
+            )
+            policy_lines.append(
+                PurchaseLine(
+                    product_id=product.id,
+                    quantity=line.quantity,
+                    unit_cost=unit_cost,
+                    minimum_order_quantity=minimum_quantity,
+                )
+            )
+        try:
+            totals = purchase_totals(policy_lines)
+        except ValueError as exc:
+            raise AppError(code=ErrorCode.INVALID_STATE) from exc
         order = self.orders.create(
             purchase_order_number=_new_number("PO"),
             buyer_organization_id=input.buyer_organization_id,
@@ -74,31 +115,21 @@ class CreatePurchaseOrderUsecase:
             note=input.note,
             created_by_account_id=input.account_id,
         )
-        subtotal = Decimal("0.00")
-        for line in input.items:
-            product = self.products.get_by_id(line.product_id)
-            supplier_product = self.supplier_products.get(
-                supplier_organization_id=supplier.id, product_id=line.product_id
-            )
-            if not product or product.organization_id != input.buyer_organization_id:
-                raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
-            if line.quantity <= 0 or (supplier_product and line.quantity < supplier_product.minimum_order_quantity):
-                raise AppError(code=ErrorCode.INVALID_STATE)
-            unit_cost = line.unit_cost or (supplier_product.unit_cost if supplier_product else None)
-            if unit_cost is None or unit_cost <= 0:
-                raise AppError(code=ErrorCode.SUPPLIER_PRODUCT_NOT_FOUND)
-            line_subtotal = (unit_cost * line.quantity).quantize(Decimal("0.01"))
+        for line in resolved_lines:
             self.items.create(
                 purchase_order_id=order.id,
-                product_id=product.id,
-                supplier_product_id=supplier_product.id if supplier_product else None,
+                product_id=line.product_id,
+                supplier_product_id=line.supplier_product_id,
                 quantity=line.quantity,
-                unit_cost=unit_cost,
-                subtotal=line_subtotal,
+                unit_cost=line.unit_cost,
+                subtotal=line_subtotal(line.unit_cost, line.quantity),
             )
-            subtotal += line_subtotal
-        tax = (subtotal * Decimal("0.10")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        self.orders.set_totals(order, subtotal=subtotal, tax_amount=tax, total_amount=subtotal + tax)
+        self.orders.set_totals(
+            order,
+            subtotal=totals.subtotal,
+            tax_amount=totals.tax_amount,
+            total_amount=totals.total_amount,
+        )
         self.history.create(purchase_order_id=order.id, from_status=None, to_status=PurchaseOrderStatus.DRAFT.value, reason=None, changed_by_account_id=input.account_id)
         self.audit_logs.record(actor_account_id=input.account_id, action="purchase_order.created", resource_type="purchase_order", resource_id=order.id, details={"line_count": len(input.items)})
         self.db.commit()

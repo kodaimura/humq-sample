@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.module.business_types import InvoiceStatus
 from .model import Invoice
-from app.policy.billing import invoice_status_after_payment
 
 
 class InvoiceModule:
@@ -28,5 +27,9 @@ class InvoiceModule:
     def apply_payment(self, entity: Invoice, amount: Decimal) -> str:
         if amount <= 0 or amount > entity.balance_due: raise ValueError("payment exceeds invoice balance")
         previous = entity.status; entity.paid_amount += amount; entity.version += 1
-        entity.status = invoice_status_after_payment(entity.total_amount, entity.paid_amount)
+        entity.status = (
+            InvoiceStatus.PAID.value
+            if entity.balance_due == 0
+            else InvoiceStatus.PARTIALLY_PAID.value
+        )
         self.db.flush(); return previous
