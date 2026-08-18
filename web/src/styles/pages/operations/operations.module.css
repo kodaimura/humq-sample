@@ -123,7 +123,10 @@
   padding: 0.8rem 0.65rem;
   text-align: left;
   vertical-align: middle;
+  white-space: nowrap;
 }
+
+.table .actions { flex-wrap: nowrap; }
 
 .table th {
   color: #64748b;
