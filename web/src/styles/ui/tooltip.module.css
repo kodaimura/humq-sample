@@ -16,7 +16,7 @@
 
 .bubble {
   background: #111827;
-  border-radius: 8px;
+  border-radius: 3px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.24);
   color: #f9fafb;
   font-size: 0.78rem;
