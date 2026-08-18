@@ -74,4 +74,4 @@ make up ENV=prod
 ```
 
 The development database is stored in the Docker named volume
-`humq-sample2_postgres_data`.
+`humq-sample_postgres_data`.
