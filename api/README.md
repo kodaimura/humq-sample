@@ -31,13 +31,21 @@ required for normal development.
 make build
 make up
 make migrate
+make seed
 ```
+
+From a fresh clone, `make demo` builds the images, migrates the database, loads
+the demo dataset, and starts the application. The seed is development-only and
+idempotent. Sign in with `demo@example.com` / `HumqDemo123!` and select
+`HUMQ Manufacturing`.
 
 Useful commands:
 
 ```sh
 make logs
 make exec
+make seed
+make demo
 make check
 make test
 make test_e2e

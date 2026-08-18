@@ -11,7 +11,7 @@ MIGRATE_SERVICE := migrate
 
 .DEFAULT_GOAL := help
 
-.PHONY: init up build build_no_cache down down_volumes stop exec shell logs ps reup check test test_e2e smoke routes requirements_compile migrate downgrade history heads current makemigration help
+.PHONY: init up build build_no_cache down down_volumes stop exec shell logs ps reup seed demo check test test_e2e smoke routes requirements_compile migrate downgrade history heads current makemigration help
 
 ## -----------------------------
 ## Base Commands
@@ -51,6 +51,14 @@ ps:
 	$(DOCKER_COMPOSE_CMD) ps
 
 reup: down up
+
+seed: migrate
+	$(DOCKER_COMPOSE_CMD) run --rm --no-deps $(API_SERVICE) python -m app.seed
+
+demo:
+	$(MAKE) build
+	$(MAKE) seed
+	$(MAKE) up
 
 check:
 	$(DOCKER_COMPOSE_CMD) run --rm --no-deps $(API_SERVICE) sh -c "python -m compileall -q app tests && python -m unittest discover -s tests -v"
@@ -129,6 +137,8 @@ help:
 	@echo "  logs            Show api logs"
 	@echo "  ps              Show container status"
 	@echo "  reup            Restart environment (down + up)"
+	@echo "  seed            Apply migrations and load demo data (development only)"
+	@echo "  demo            Build, seed, and start the demo environment"
 	@echo "  check           Compile Python files and run tests"
 	@echo "  test            Run unit tests inside the api container"
 	@echo "  test_e2e        Run the full HTTP API contract in isolation"

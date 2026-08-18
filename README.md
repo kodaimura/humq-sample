@@ -97,10 +97,16 @@ flowchart LR
 Docker があれば起動できます。
 
 ```sh
-make build
-make up
-make migrate
+git clone https://github.com/kodaimura/humq-sample.git
+cd humq-sample
+make demo
 ```
+
+`make demo` はイメージのビルド、マイグレーション、デモデータ投入、アプリケーション起動を順番に実行します。デモデータだけを再実行する場合は `make seed` を使用できます。seed は再実行可能で、投入済みの場合はデータを重複作成しません。
+
+- ログインID: `demo@example.com`
+- パスワード: `HumqDemo123!`
+- 自社組織: `HUMQ Manufacturing`
 
 - Web: http://localhost:3000
 - API: http://localhost:8000/api
@@ -108,7 +114,14 @@ make migrate
 - Health: http://localhost:8000/health
 - MailHog: http://localhost:8025
 
-サインアップ後、最初に `/organizations` で自社組織と取引先を作成してください。ヘッダーで自社組織を選ぶと、商品・在庫・受注・出荷の各画面を操作できます。
+seed には商品・2倉庫の在庫、仕入先、顧客、発注・分納、倉庫移動、受注・引当・出荷、返品、請求・一部入金が含まれます。ログイン後、ヘッダーで `HUMQ Manufacturing` を選択すると、業務状態の異なるデータを各画面で確認できます。
+
+データを完全に作り直す場合は、開発用DBボリュームを削除してから再投入します。
+
+```sh
+make down_volumes
+make demo
+```
 
 ## テスト
 
