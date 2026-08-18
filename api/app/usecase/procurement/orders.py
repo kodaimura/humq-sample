@@ -16,9 +16,9 @@ from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
 from app.module.supplier_product import SupplierProductModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.usecase.policies import line_subtotal
-from app.usecase.procurement.policies import PurchaseLine, purchase_totals
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._policies import line_subtotal
+from app.usecase.procurement._policies import PurchaseLine, purchase_totals
 
 
 @dataclass(frozen=True)
@@ -50,7 +50,7 @@ class ResolvedPurchaseOrderLine:
 class CreatePurchaseOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.organizations = OrganizationModule(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)
@@ -61,7 +61,7 @@ class CreatePurchaseOrderUsecase:
         self.audit_logs = AuditLogModule(db)
 
     def execute(self, input: CreatePurchaseOrderInput) -> PurchaseOrder:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.buyer_organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
@@ -138,12 +138,12 @@ class CreatePurchaseOrderUsecase:
 
 class ChangePurchaseOrderStatusUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.orders = PurchaseOrderModule(db); self.history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.orders = PurchaseOrderModule(db); self.history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, purchase_order_id: int, action: str, reason: str | None = None) -> PurchaseOrder:
         order = self.orders.get_for_update(purchase_order_id)
         if not order: raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
-        self.require_role.execute(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
         transitions = {"approve": ({PurchaseOrderStatus.DRAFT.value}, PurchaseOrderStatus.APPROVED.value), "cancel": ({PurchaseOrderStatus.DRAFT.value, PurchaseOrderStatus.APPROVED.value}, PurchaseOrderStatus.CANCELED.value)}
         allowed, target = transitions.get(action, (set(), ""))
         if order.status not in allowed: raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)

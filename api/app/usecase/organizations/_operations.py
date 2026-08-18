@@ -5,12 +5,12 @@ from app.module.organization import OrganizationModule
 from app.module.organization_member import OrganizationMemberModule
 
 
-class RequireOrganizationRoleUsecase:
+class RequireOrganizationRoleOperation:
     def __init__(self, db: Session):
         self.organizations = OrganizationModule(db)
         self.members = OrganizationMemberModule(db)
 
-    def execute(
+    def run(
         self, *, organization_id: int, account_id: int, allowed_roles: set[str]
     ) -> None:
         if not self.organizations.get_by_id(organization_id):

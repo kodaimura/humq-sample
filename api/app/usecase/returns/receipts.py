@@ -16,8 +16,8 @@ from app.module.sales_order import SalesOrderModule
 from app.module.sales_return import SalesReturnModule
 from app.module.sales_return_item import SalesReturnItemModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.usecase.returns.policies import return_status
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.returns._policies import return_status
 
 
 @dataclass(frozen=True)
@@ -38,13 +38,13 @@ class CreateReturnReceiptInput:
 
 class CreateReturnReceiptUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.returns = SalesReturnModule(db); self.orders = SalesOrderModule(db); self.return_items = SalesReturnItemModule(db); self.receipts = ReturnReceiptModule(db); self.receipt_items = ReturnReceiptItemModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.returns = SalesReturnModule(db); self.orders = SalesOrderModule(db); self.return_items = SalesReturnItemModule(db); self.receipts = ReturnReceiptModule(db); self.receipt_items = ReturnReceiptItemModule(db)
 
     def execute(self, input: CreateReturnReceiptInput) -> ReturnReceipt:
         sales_return = self.returns.get_for_update(input.sales_return_id)
         if not sales_return: raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(sales_return.order_id); assert order is not None
-        self.require_role.execute(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
         if sales_return.status not in {SalesReturnStatus.APPROVED.value, SalesReturnStatus.PARTIALLY_RECEIVED.value} or not input.items: raise AppError(code=ErrorCode.INVALID_RETURN_STATE)
         entity = self.receipts.create(receipt_number=_new_return_receipt_number(), sales_return_id=sales_return.id, warehouse_id=sales_return.warehouse_id, note=input.note, received_by_account_id=input.account_id)
         seen: set[int] = set()
@@ -59,14 +59,14 @@ class CreateReturnReceiptUsecase:
 
 class PostReturnReceiptUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.receipts = ReturnReceiptModule(db); self.receipt_items = ReturnReceiptItemModule(db); self.returns = SalesReturnModule(db); self.return_items = SalesReturnItemModule(db); self.orders = SalesOrderModule(db); self.balances = InventoryBalanceModule(db); self.ledger = InventoryLedgerModule(db); self.history = SalesReturnStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.receipts = ReturnReceiptModule(db); self.receipt_items = ReturnReceiptItemModule(db); self.returns = SalesReturnModule(db); self.return_items = SalesReturnItemModule(db); self.orders = SalesOrderModule(db); self.balances = InventoryBalanceModule(db); self.ledger = InventoryLedgerModule(db); self.history = SalesReturnStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, return_receipt_id: int) -> ReturnReceipt:
         receipt = self.receipts.get_for_update(return_receipt_id)
         if not receipt: raise AppError(code=ErrorCode.RETURN_RECEIPT_NOT_FOUND)
         sales_return = self.returns.get_for_update(receipt.sales_return_id); assert sales_return is not None
         order = self.orders.get_by_id(sales_return.order_id); assert order is not None
-        self.require_role.execute(organization_id=order.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
         if receipt.status != ReturnReceiptStatus.DRAFT.value or sales_return.status not in {SalesReturnStatus.APPROVED.value, SalesReturnStatus.PARTIALLY_RECEIVED.value}: raise AppError(code=ErrorCode.INVALID_RETURN_STATE)
         for item in self.receipt_items.list_by_receipt(receipt.id):
             return_item = self.return_items.get_for_update(item.sales_return_item_id); assert return_item is not None

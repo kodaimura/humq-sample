@@ -15,13 +15,13 @@ from app.module.product import ProductModule
 from app.module.sales_order import SalesOrderModule
 from app.module.shipment import ShipmentModule
 from app.query.billing_overview import BillingOverviewQuery
-from app.usecase.billing.policies import (
+from app.usecase.billing._policies import (
     InvoiceableLine,
     build_invoice_lines,
     invoice_totals,
     validate_invoice_dates,
 )
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -34,13 +34,13 @@ class GenerateInvoiceInput:
 
 class GenerateInvoiceUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.shipments = ShipmentModule(db); self.orders = SalesOrderModule(db); self.products = ProductModule(db); self.invoices = InvoiceModule(db); self.items = InvoiceItemModule(db); self.history = InvoiceStatusHistoryModule(db); self.billing = BillingOverviewQuery(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.shipments = ShipmentModule(db); self.orders = SalesOrderModule(db); self.products = ProductModule(db); self.invoices = InvoiceModule(db); self.items = InvoiceItemModule(db); self.history = InvoiceStatusHistoryModule(db); self.billing = BillingOverviewQuery(db); self.audit = AuditLogModule(db)
 
     def execute(self, input: GenerateInvoiceInput) -> Invoice:
         shipment = self.shipments.get_by_id(input.shipment_id)
         if not shipment: raise AppError(code=ErrorCode.SHIPMENT_NOT_FOUND)
         order = self.orders.get_by_id(shipment.order_id); assert order is not None
-        self.require_role.execute(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
+        self.require_role.run(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
         if shipment.status != ShipmentStatus.SHIPPED.value: raise AppError(code=ErrorCode.INVALID_INVOICE_STATE)
         invoiceable = self.billing.invoiceable_shipment_items(shipment.id)
         try:
@@ -71,12 +71,12 @@ class GenerateInvoiceUsecase:
 
 class ChangeInvoiceStatusUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.invoices = InvoiceModule(db); self.history = InvoiceStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.invoices = InvoiceModule(db); self.history = InvoiceStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, invoice_id: int, action: str, reason: str | None = None) -> Invoice:
         invoice = self.invoices.get_for_update(invoice_id)
         if not invoice: raise AppError(code=ErrorCode.INVOICE_NOT_FOUND)
-        self.require_role.execute(organization_id=invoice.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
+        self.require_role.run(organization_id=invoice.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
         transitions = {"issue": ({InvoiceStatus.DRAFT.value}, InvoiceStatus.ISSUED.value), "void": ({InvoiceStatus.DRAFT.value, InvoiceStatus.ISSUED.value}, InvoiceStatus.VOID.value)}
         allowed, target = transitions.get(action, (set(), ""))
         if invoice.status not in allowed or invoice.paid_amount > 0: raise AppError(code=ErrorCode.INVALID_INVOICE_STATE)

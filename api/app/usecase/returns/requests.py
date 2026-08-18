@@ -15,8 +15,8 @@ from app.module.sales_return_item import SalesReturnItemModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
 from app.module.warehouse import WarehouseModule
 from app.query.return_eligibility import ReturnEligibilityQuery
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.usecase.returns.policies import (
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.returns._policies import (
     ReturnEligibility,
     ReturnRequestLine,
     requested_credit,
@@ -42,12 +42,12 @@ class CreateSalesReturnInput:
 
 class CreateSalesReturnUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.orders = SalesOrderModule(db); self.order_items = SalesOrderItemModule(db); self.warehouses = WarehouseModule(db); self.returns = SalesReturnModule(db); self.return_items = SalesReturnItemModule(db); self.history = SalesReturnStatusHistoryModule(db); self.eligibility = ReturnEligibilityQuery(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.orders = SalesOrderModule(db); self.order_items = SalesOrderItemModule(db); self.warehouses = WarehouseModule(db); self.returns = SalesReturnModule(db); self.return_items = SalesReturnItemModule(db); self.history = SalesReturnStatusHistoryModule(db); self.eligibility = ReturnEligibilityQuery(db); self.audit = AuditLogModule(db)
 
     def execute(self, input: CreateSalesReturnInput) -> SalesReturn:
         order = self.orders.get_for_update(input.order_id)
         if not order: raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
-        self.require_role.execute(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.seller_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value, MemberRole.WAREHOUSE.value})
         if order.status not in {OrderStatus.SHIPPED.value, OrderStatus.PARTIALLY_SHIPPED.value}: raise AppError(code=ErrorCode.INVALID_ORDER_STATE)
         warehouse = self.warehouses.get_by_id(input.warehouse_id)
         if not warehouse or warehouse.organization_id != order.seller_organization_id: raise AppError(code=ErrorCode.WAREHOUSE_NOT_FOUND)
@@ -85,13 +85,13 @@ class CreateSalesReturnUsecase:
 
 class ChangeSalesReturnStatusUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.returns = SalesReturnModule(db); self.orders = SalesOrderModule(db); self.history = SalesReturnStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.returns = SalesReturnModule(db); self.orders = SalesOrderModule(db); self.history = SalesReturnStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, sales_return_id: int, action: str, reason: str | None = None) -> SalesReturn:
         entity = self.returns.get_for_update(sales_return_id)
         if not entity: raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(entity.order_id); assert order is not None
-        self.require_role.execute(organization_id=order.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.seller_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value, MemberRole.WAREHOUSE.value})
         transitions = {"approve": ({SalesReturnStatus.REQUESTED.value}, SalesReturnStatus.APPROVED.value), "cancel": ({SalesReturnStatus.REQUESTED.value, SalesReturnStatus.APPROVED.value}, SalesReturnStatus.CANCELED.value)}
         allowed, target = transitions.get(action, (set(), ""))
         if entity.status not in allowed: raise AppError(code=ErrorCode.INVALID_RETURN_STATE)

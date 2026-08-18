@@ -14,11 +14,11 @@ from app.module.organization import OrganizationModule
 from app.module.outbox_event import OutboxEventModule
 from app.module.payment import Payment, PaymentModule
 from app.module.payment_allocation import PaymentAllocationModule
-from app.usecase.billing.policies import (
+from app.usecase.billing._policies import (
     PaymentAllocationRequest,
     validate_payment_allocations,
 )
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -40,10 +40,10 @@ class PaymentAllocationInput:
 
 class CreatePaymentUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.organizations = OrganizationModule(db); self.payments = PaymentModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.organizations = OrganizationModule(db); self.payments = PaymentModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, input: CreatePaymentInput) -> Payment:
-        self.require_role.execute(organization_id=input.payee_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
+        self.require_role.run(organization_id=input.payee_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
         payer = self.organizations.get_by_id(input.payer_organization_id)
         if not payer: raise AppError(code=ErrorCode.ORGANIZATION_NOT_FOUND)
         if input.amount <= 0 or input.method not in {"BANK_TRANSFER", "CARD", "CASH", "OTHER"}: raise AppError(code=ErrorCode.INVALID_PAYMENT_STATE)
@@ -54,12 +54,12 @@ class CreatePaymentUsecase:
 
 class PostPaymentUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.payments = PaymentModule(db); self.allocations = PaymentAllocationModule(db); self.invoices = InvoiceModule(db); self.history = InvoiceStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.payments = PaymentModule(db); self.allocations = PaymentAllocationModule(db); self.invoices = InvoiceModule(db); self.history = InvoiceStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, payment_id: int, allocations: list[PaymentAllocationInput]) -> Payment:
         payment = self.payments.get_for_update(payment_id)
         if not payment: raise AppError(code=ErrorCode.PAYMENT_NOT_FOUND)
-        self.require_role.execute(organization_id=payment.payee_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
+        self.require_role.run(organization_id=payment.payee_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value})
         if payment.status != PaymentStatus.DRAFT.value: raise AppError(code=ErrorCode.INVALID_PAYMENT_STATE)
         resolved_allocations: list[tuple[PaymentAllocationInput, Invoice]] = []
         for requested in allocations:

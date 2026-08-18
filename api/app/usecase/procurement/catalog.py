@@ -11,7 +11,7 @@ from app.module.product import ProductModule
 from app.module.reorder_policy import ReorderPolicy, ReorderPolicyModule
 from app.module.supplier_product import SupplierProduct, SupplierProductModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -40,14 +40,14 @@ class ConfigureReorderPolicyInput:
 class ConfigureSupplierProductUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.organizations = OrganizationModule(db)
         self.products = ProductModule(db)
         self.supplier_products = SupplierProductModule(db)
         self.audit_logs = AuditLogModule(db)
 
     def execute(self, input: ConfigureSupplierProductInput) -> SupplierProduct:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.buyer_organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},
@@ -86,14 +86,14 @@ class ConfigureSupplierProductUsecase:
 class ConfigureReorderPolicyUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)
         self.organizations = OrganizationModule(db)
         self.policies = ReorderPolicyModule(db)
 
     def execute(self, input: ConfigureReorderPolicyInput) -> ReorderPolicy:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},

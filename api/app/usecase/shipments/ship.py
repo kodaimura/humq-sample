@@ -19,13 +19,13 @@ from app.module.shipment_item import ShipmentItemModule
 from app.module.shipment_status_history import ShipmentStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.query.order_fulfillment import OrderFulfillmentQuery
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 class ShipShipmentUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.shipments = ShipmentModule(db)
         self.shipment_items = ShipmentItemModule(db)
         self.shipment_history = ShipmentStatusHistoryModule(db)
@@ -47,7 +47,7 @@ class ShipShipmentUsecase:
         order = self.orders.get_for_update(shipment.order_id)
         if not order:
             raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},

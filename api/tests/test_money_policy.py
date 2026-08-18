@@ -1,7 +1,30 @@
 import unittest
 from decimal import Decimal
 
-from app.usecase.policies import line_subtotal, money, prorate_amount, sum_money, tax_for, taxed_amount, total_with_tax
+from app.core.error import AppError
+from app.usecase._policies import line_subtotal, money, prorate_amount, resolve_login_id, sum_money, tax_for, taxed_amount, total_with_tax
+
+
+class SharedPolicyTest(unittest.TestCase):
+    def test_login_id_policy_uses_configured_identifier(self):
+        self.assertEqual(
+            resolve_login_id(None, "user@example.com", login_id_mode="email"),
+            "user@example.com",
+        )
+        self.assertEqual(
+            resolve_login_id("user-1", None, login_id_mode="login_id"),
+            "user-1",
+        )
+
+    def test_login_id_policy_requires_the_configured_identifier(self):
+        with self.assertRaises(AppError):
+            resolve_login_id(None, None, login_id_mode="email")
+        with self.assertRaises(AppError):
+            resolve_login_id(None, None, login_id_mode="login_id")
+
+    def test_login_id_policy_rejects_unknown_mode(self):
+        with self.assertRaises(AppError):
+            resolve_login_id("user-1", None, login_id_mode="unknown")
 
 
 class MoneyPolicyTest(unittest.TestCase):

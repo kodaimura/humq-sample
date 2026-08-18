@@ -2,7 +2,7 @@
 
 HUMQ Flow の FastAPI バックエンドです。42 テーブルを使った受注・在庫・出荷・調達・返品・請求業務を、HUMQ の4責務である Handler、Usecase、Module、Query に分離しています。
 
-純粋な業務ルールは独立した第5層ではなく、Usecase の内部実装として管理します。領域共通のルールは `app/usecase/<domain>/policies.py`、全領域共通のルールは `app/usecase/policies.py` に配置し、単一Usecaseでしか使わない処理はそのファイル内に残します。DB を使う複数 Module 共通処理は Usecase 配下の Operation とし、呼び出し元の Session を共有して commit は行いません。
+Policy と Operation は独立した層ではなく、Usecase 責務の内部実装です。純粋な共有ルールは `app/usecase/<domain>/_policies.py`、Module や Query を使う共有業務処理は所有ドメインの `_operations.py` に配置します。先頭の `_` は内部ファイルであることを示し、Operation は呼び出し元 Usecase の Session を共有して commit を行いません。
 
 ## Create a project
 

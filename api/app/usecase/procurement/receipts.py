@@ -16,8 +16,8 @@ from app.module.outbox_event import OutboxEventModule
 from app.module.purchase_order import PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
-from app.usecase.procurement.policies import purchase_order_status
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.procurement._policies import purchase_order_status
 
 
 @dataclass(frozen=True)
@@ -39,12 +39,12 @@ class CreateGoodsReceiptInput:
 
 class CreateGoodsReceiptUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.orders = PurchaseOrderModule(db); self.order_items = PurchaseOrderItemModule(db); self.receipts = GoodsReceiptModule(db); self.items = GoodsReceiptItemModule(db); self.history = GoodsReceiptStatusHistoryModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.orders = PurchaseOrderModule(db); self.order_items = PurchaseOrderItemModule(db); self.receipts = GoodsReceiptModule(db); self.items = GoodsReceiptItemModule(db); self.history = GoodsReceiptStatusHistoryModule(db)
 
     def execute(self, input: CreateGoodsReceiptInput) -> GoodsReceipt:
         order = self.orders.get_for_update(input.purchase_order_id)
         if not order: raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
-        self.require_role.execute(organization_id=order.buyer_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.buyer_organization_id, account_id=input.account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
         if order.status not in {PurchaseOrderStatus.APPROVED.value, PurchaseOrderStatus.PARTIALLY_RECEIVED.value} or not input.items:
             raise AppError(code=ErrorCode.INVALID_PURCHASE_ORDER_STATE)
         receipt = self.receipts.create(receipt_number=_new_receipt_number(), purchase_order_id=order.id, warehouse_id=order.warehouse_id, received_date=date.today(), supplier_reference=input.supplier_reference, note=input.note, received_by_account_id=input.account_id)
@@ -64,14 +64,14 @@ class CreateGoodsReceiptUsecase:
 
 class PostGoodsReceiptUsecase:
     def __init__(self, db: Session):
-        self.db = db; self.require_role = RequireOrganizationRoleUsecase(db); self.receipts = GoodsReceiptModule(db); self.receipt_items = GoodsReceiptItemModule(db); self.orders = PurchaseOrderModule(db); self.order_items = PurchaseOrderItemModule(db); self.balances = InventoryBalanceModule(db); self.ledger = InventoryLedgerModule(db); self.receipt_history = GoodsReceiptStatusHistoryModule(db); self.order_history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
+        self.db = db; self.require_role = RequireOrganizationRoleOperation(db); self.receipts = GoodsReceiptModule(db); self.receipt_items = GoodsReceiptItemModule(db); self.orders = PurchaseOrderModule(db); self.order_items = PurchaseOrderItemModule(db); self.balances = InventoryBalanceModule(db); self.ledger = InventoryLedgerModule(db); self.receipt_history = GoodsReceiptStatusHistoryModule(db); self.order_history = PurchaseOrderStatusHistoryModule(db); self.outbox = OutboxEventModule(db); self.audit = AuditLogModule(db)
 
     def execute(self, *, account_id: int, goods_receipt_id: int) -> GoodsReceipt:
         receipt = self.receipts.get_for_update(goods_receipt_id)
         if not receipt: raise AppError(code=ErrorCode.GOODS_RECEIPT_NOT_FOUND)
         order = self.orders.get_for_update(receipt.purchase_order_id)
         assert order is not None
-        self.require_role.execute(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
+        self.require_role.run(organization_id=order.buyer_organization_id, account_id=account_id, allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value})
         if receipt.status != GoodsReceiptStatus.DRAFT.value or order.status not in {PurchaseOrderStatus.APPROVED.value, PurchaseOrderStatus.PARTIALLY_RECEIVED.value}: raise AppError(code=ErrorCode.INVALID_GOODS_RECEIPT_STATE)
         for item in self.receipt_items.list_by_receipt(receipt.id):
             order_item = self.order_items.get_for_update(item.purchase_order_item_id)

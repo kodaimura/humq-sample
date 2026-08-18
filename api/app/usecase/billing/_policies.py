@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Iterable
 
-from app.usecase.policies import line_subtotal, tax_for, sum_money, TaxedAmount
+from app.usecase._policies import line_subtotal, tax_for, sum_money, TaxedAmount
 
 
 @dataclass(frozen=True)

@@ -38,7 +38,7 @@ flowchart LR
 
 HUMQ の責務は `Handler`、`Usecase`、`Module`、`Query` の4つです。Handler は必ず Usecase を入口とし、Module は原則として一つのテーブル、Query は複数テーブルを横断する読み取りを担当します。トランザクション境界は Usecase が所有します。
 
-DB に依存しない金額・数量・状態判定は第5の層にはせず、Usecase の内部実装である Policy として配置します。一つの処理だけで使う判定は Usecase ファイル内、同じ業務領域で共有する判定は `app/usecase/<domain>/policies.py`、全領域で共有する金額計算などは `app/usecase/policies.py` に置きます。DB を使って複数 Module を横断する再利用処理は Policy ではなく Usecase 配下の Operation とし、呼び出し元の Session を共有して commit は行いません。
+Usecase 責務内の共有部品は、先頭に `_` を付けて内部ファイルであることを示します。DB に依存しない判断・計算は `_policies.py`、Module や Query を使う共有業務処理は所有ドメインの `_operations.py` に置きます。Operation は呼び出し元 Usecase の Session を共有し、自身では commit を行いません。
 
 ```mermaid
 flowchart LR
@@ -49,6 +49,7 @@ flowchart LR
     UC --> M3["Inventory Module"]
     UC --> Q["Cross-table Query"]
     UC -.-> P["Usecase-internal Policy"]
+    UC -.-> O["Usecase-internal Operation"]
     M1 --> DB[(PostgreSQL)]
     M2 --> DB
     M3 --> DB
@@ -63,6 +64,7 @@ flowchart LR
 - 外部連携用イベントを Outbox に保存する
 - 発注の分納、返品の再入庫・廃棄、複数請求への入金配賦をトランザクション内で処理する
 - Usecase 配下の Policy を DB なしで単体テストし、Usecase は判断結果を明示的に業務フローへ組み込む
+- 組織ロールの共通認可を Operation として再利用し、トランザクション境界は呼び出し元 Usecase に保つ
 
 ## テーブル構成
 
@@ -85,7 +87,7 @@ flowchart LR
 - Python: 10,000 行以上（`api/app`、Alembic を含む）
 - TypeScript / TSX: 約 3,700 行
 - PostgreSQL: 42 テーブル
-- Python 単体テスト: 46 件
+- Python 単体テスト: 54 件
 - API E2E: 9 シナリオ
 
 フロントエンドの画面数を増やすことではなく、サーバー側の業務ルール、状態遷移、排他制御、横断トランザクションを厚くする構成です。

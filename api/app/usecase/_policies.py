@@ -2,9 +2,28 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable
 
+from app.core.error import AppError, ErrorCode
+
 
 MONEY_QUANTUM = Decimal("0.01")
 DEFAULT_TAX_RATE = Decimal("0.10")
+
+
+def resolve_login_id(
+    login_id: str | None,
+    email: str | None,
+    *,
+    login_id_mode: str,
+) -> str:
+    if login_id_mode == "email":
+        if not email:
+            raise AppError(code=ErrorCode.EMAIL_REQUIRED)
+        return email
+    if login_id_mode == "login_id":
+        if not login_id:
+            raise AppError(code=ErrorCode.LOGIN_ID_REQUIRED)
+        return login_id
+    raise AppError(code=ErrorCode.INVALID_STATE)
 
 
 def money(value: Decimal | int | str) -> Decimal:

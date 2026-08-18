@@ -11,7 +11,7 @@ from app.module.inventory_balance import InventoryBalanceModule
 from app.module.inventory_ledger import InventoryLedgerModule
 from app.module.product import ProductModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class ApplyInventoryAdjustmentInput:
 class ApplyInventoryAdjustmentUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)
         self.adjustments = InventoryAdjustmentModule(db)
@@ -43,7 +43,7 @@ class ApplyInventoryAdjustmentUsecase:
         self.audit_logs = AuditLogModule(db)
 
     def execute(self, input: ApplyInventoryAdjustmentInput) -> InventoryAdjustment:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.WAREHOUSE.value},

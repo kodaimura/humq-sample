@@ -15,7 +15,7 @@ from app.module.product import ProductModule
 from app.module.sales_order import SalesOrder, SalesOrderModule
 from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class CreateOrderInput:
 class CreateOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.organizations = OrganizationModule(db)
         self.addresses = OrganizationAddressModule(db)
         self.products = ProductModule(db)
@@ -49,7 +49,7 @@ class CreateOrderUsecase:
         self.audit_logs = AuditLogModule(db)
 
     def execute(self, input: CreateOrderInput) -> SalesOrder:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.seller_organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value},

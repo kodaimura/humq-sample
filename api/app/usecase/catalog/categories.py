@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.module.business_types import MemberRole
 from app.module.product_category import ProductCategory, ProductCategoryModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 @dataclass(frozen=True)
@@ -18,11 +18,11 @@ class CreateCategoryInput:
 class CreateCategoryUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.categories = ProductCategoryModule(db)
 
     def execute(self, input: CreateCategoryInput) -> ProductCategory:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=input.organization_id,
             account_id=input.account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value},
@@ -36,11 +36,11 @@ class CreateCategoryUsecase:
 
 class ListCategoriesUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.categories = ProductCategoryModule(db)
 
     def execute(self, *, account_id: int, organization_id: int) -> list[ProductCategory]:
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=organization_id,
             account_id=account_id,
             allowed_roles={role.value for role in MemberRole},

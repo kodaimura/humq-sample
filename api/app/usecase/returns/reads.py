@@ -6,12 +6,12 @@ from app.module.sales_order import SalesOrderModule
 from app.module.sales_return import SalesReturn, SalesReturnModule
 from app.module.sales_return_item import SalesReturnItem, SalesReturnItemModule
 from app.query.return_eligibility import ReturnEligibilityQuery, ReturnableOrderItem
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 class GetSalesReturnUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.orders = SalesOrderModule(db)
         self.returns = SalesReturnModule(db)
         self.items = SalesReturnItemModule(db)
@@ -24,7 +24,7 @@ class GetSalesReturnUsecase:
             raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(entity.order_id)
         assert order is not None
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
             allowed_roles={
@@ -38,7 +38,7 @@ class GetSalesReturnUsecase:
 
 class GetReturnEligibilityUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.orders = SalesOrderModule(db)
         self.query = ReturnEligibilityQuery(db)
 
@@ -48,7 +48,7 @@ class GetReturnEligibilityUsecase:
         order = self.orders.get_by_id(order_id)
         if not order:
             raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
             allowed_roles={

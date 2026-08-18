@@ -15,13 +15,13 @@ from app.module.sales_order import SalesOrder, SalesOrderModule
 from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
-from app.usecase.organizations.require_role import RequireOrganizationRoleUsecase
+from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 
 
 class CancelOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleUsecase(db)
+        self.require_role = RequireOrganizationRoleOperation(db)
         self.orders = SalesOrderModule(db)
         self.items = SalesOrderItemModule(db)
         self.reservations = StockReservationModule(db)
@@ -35,7 +35,7 @@ class CancelOrderUsecase:
         order = self.orders.get_for_update(order_id)
         if not order:
             raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
-        self.require_role.execute(
+        self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
             allowed_roles={MemberRole.ADMIN.value, MemberRole.SALES.value},

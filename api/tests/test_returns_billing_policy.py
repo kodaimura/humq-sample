@@ -3,8 +3,8 @@ from datetime import date
 from decimal import Decimal
 
 from app.module.business_types import ReturnDisposition, SalesReturnStatus
-from app.usecase.billing.policies import InvoiceableLine, PaymentAllocationRequest, build_invoice_lines, invoice_totals, validate_invoice_dates, validate_payment_allocations
-from app.usecase.returns.policies import ReturnEligibility, ReturnReceiptDisposition, ReturnRequestLine, net_restock_quantity, requested_credit, return_status, validate_return_disposition, validate_return_request
+from app.usecase.billing._policies import InvoiceableLine, PaymentAllocationRequest, build_invoice_lines, invoice_totals, validate_invoice_dates, validate_payment_allocations
+from app.usecase.returns._policies import ReturnEligibility, ReturnReceiptDisposition, ReturnRequestLine, net_restock_quantity, requested_credit, return_status, validate_return_disposition, validate_return_request
 
 
 class ReturnsPolicyTest(unittest.TestCase):
