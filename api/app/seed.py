@@ -112,6 +112,29 @@ class DemoContext:
 
 
 @dataclass(frozen=True)
+class SecondaryProductSpec:
+    sku: str
+    name: str
+    unit_price: str
+    unit_cost: str
+    opening_quantity: int
+
+
+@dataclass(frozen=True)
+class SecondaryOrganizationSpec:
+    organization_id: int
+    customer_id: int
+    sourcing_supplier_id: int
+    category_code: str
+    category_name: str
+    warehouse_code: str
+    warehouse_name: str
+    products: tuple[SecondaryProductSpec, SecondaryProductSpec]
+    order_state: str
+    settle_invoice: bool = False
+
+
+@dataclass(frozen=True)
 class SeedResult:
     created: bool
     account_id: int
@@ -152,6 +175,7 @@ def seed_demo() -> SeedResult:
             _seed_order_to_cash(db, context)
             _seed_additional_order_to_cash(db, context)
             _seed_open_orders(db, context)
+            _seed_secondary_organizations(db, context)
             return SeedResult(
                 created=True,
                 account_id=context.account_id,
@@ -911,6 +935,269 @@ def _seed_open_orders(db: Session, context: DemoContext) -> None:
         account_id=context.account_id,
         order_id=canceled.id,
         reason="顧客の設備計画延期による取消",
+    )
+
+
+def _seed_secondary_organizations(db: Session, context: DemoContext) -> None:
+    specs = (
+        SecondaryOrganizationSpec(
+            organization_id=context.customer_a_id,
+            customer_id=context.customer_b_id,
+            sourcing_supplier_id=context.supplier_id,
+            category_code="PACKAGING",
+            category_name="物流・梱包資材",
+            warehouse_code="YOKOHAMA",
+            warehouse_name="横浜商品センター",
+            products=(
+                SecondaryProductSpec(
+                    "LBL-100", "耐候性管理ラベル", "1800.00", "950.00", 120
+                ),
+                SecondaryProductSpec(
+                    "BOX-200", "折りたたみ式通い箱", "6800.00", "4200.00", 45
+                ),
+            ),
+            order_state="shipped",
+        ),
+        SecondaryOrganizationSpec(
+            organization_id=context.customer_b_id,
+            customer_id=context.customer_c_id,
+            sourcing_supplier_id=context.supplier_id,
+            category_code="METAL_PARTS",
+            category_name="産業機器用加工部品",
+            warehouse_code="SAITAMA",
+            warehouse_name="埼玉部品倉庫",
+            products=(
+                SecondaryProductSpec(
+                    "BRK-310", "アルミ取付ブラケット", "4600.00", "2800.00", 70
+                ),
+                SecondaryProductSpec(
+                    "CVR-320", "ステンレス保護カバー", "8900.00", "5600.00", 32
+                ),
+            ),
+            order_state="allocated",
+        ),
+        SecondaryOrganizationSpec(
+            organization_id=context.customer_c_id,
+            customer_id=context.seller_id,
+            sourcing_supplier_id=context.supplier_b_id,
+            category_code="PANEL_PARTS",
+            category_name="制御盤用資材",
+            warehouse_code="SAPPORO",
+            warehouse_name="札幌資材センター",
+            products=(
+                SecondaryProductSpec(
+                    "TRM-410", "制御盤用端子台", "2400.00", "1300.00", 90
+                ),
+                SecondaryProductSpec(
+                    "DIN-420", "DINレール 1m", "1600.00", "780.00", 110
+                ),
+            ),
+            order_state="draft",
+        ),
+        SecondaryOrganizationSpec(
+            organization_id=context.supplier_id,
+            customer_id=context.seller_id,
+            sourcing_supplier_id=context.supplier_b_id,
+            category_code="CONNECTORS",
+            category_name="センサー接続部品",
+            warehouse_code="NAGANO",
+            warehouse_name="長野製品倉庫",
+            products=(
+                SecondaryProductSpec(
+                    "CON-510", "防水センサーコネクター", "3200.00", "1700.00", 85
+                ),
+                SecondaryProductSpec(
+                    "SHD-520", "耐油シールドケーブル 10m", "7600.00", "4300.00", 38
+                ),
+            ),
+            order_state="shipped",
+            settle_invoice=True,
+        ),
+        SecondaryOrganizationSpec(
+            organization_id=context.supplier_b_id,
+            customer_id=context.customer_a_id,
+            sourcing_supplier_id=context.supplier_id,
+            category_code="COMM_MODULES",
+            category_name="産業用通信モジュール",
+            warehouse_code="OKAYAMA",
+            warehouse_name="岡山製品センター",
+            products=(
+                SecondaryProductSpec(
+                    "COM-610", "RS-485通信モジュール", "15800.00", "9800.00", 40
+                ),
+                SecondaryProductSpec(
+                    "ANT-620", "盤内設置用無線アンテナ", "6200.00", "3500.00", 55
+                ),
+            ),
+            order_state="canceled",
+        ),
+    )
+    for spec in specs:
+        _seed_secondary_organization(db, context.account_id, spec)
+
+
+def _seed_secondary_organization(
+    db: Session,
+    account_id: int,
+    spec: SecondaryOrganizationSpec,
+) -> None:
+    category = CreateCategoryUsecase(db).execute(
+        CreateCategoryInput(
+            account_id=account_id,
+            organization_id=spec.organization_id,
+            code=spec.category_code,
+            name=spec.category_name,
+        )
+    )
+    products = [
+        CreateProductUsecase(db).execute(
+            CreateProductInput(
+                account_id=account_id,
+                organization_id=spec.organization_id,
+                category_id=category.id,
+                sku=product.sku,
+                name=product.name,
+                description=f"{product.name}のデモ商品マスタ",
+                unit_price=Decimal(product.unit_price),
+            )
+        )
+        for product in spec.products
+    ]
+    warehouse = CreateWarehouseUsecase(db).execute(
+        CreateWarehouseInput(
+            account_id=account_id,
+            organization_id=spec.organization_id,
+            code=spec.warehouse_code,
+            name=spec.warehouse_name,
+        )
+    )
+    ApplyInventoryAdjustmentUsecase(db).execute(
+        ApplyInventoryAdjustmentInput(
+            account_id=account_id,
+            organization_id=spec.organization_id,
+            warehouse_id=warehouse.id,
+            reason="デモ初期在庫",
+            items=[
+                AdjustmentLineInput(product.id, product_spec.opening_quantity)
+                for product, product_spec in zip(products, spec.products, strict=True)
+            ],
+        )
+    )
+
+    sourced_product = products[0]
+    sourced_spec = spec.products[0]
+    ConfigureSupplierProductUsecase(db).execute(
+        ConfigureSupplierProductInput(
+            account_id=account_id,
+            buyer_organization_id=spec.organization_id,
+            supplier_organization_id=spec.sourcing_supplier_id,
+            product_id=sourced_product.id,
+            supplier_sku=f"SRC-{sourced_spec.sku}",
+            unit_cost=Decimal(sourced_spec.unit_cost),
+            lead_time_days=7,
+            minimum_order_quantity=5,
+        )
+    )
+    ConfigureReorderPolicyUsecase(db).execute(
+        ConfigureReorderPolicyInput(
+            account_id=account_id,
+            organization_id=spec.organization_id,
+            warehouse_id=warehouse.id,
+            product_id=sourced_product.id,
+            preferred_supplier_organization_id=spec.sourcing_supplier_id,
+            reorder_point=10,
+            target_stock_quantity=50,
+        )
+    )
+    CreatePurchaseOrderUsecase(db).execute(
+        CreatePurchaseOrderInput(
+            account_id=account_id,
+            buyer_organization_id=spec.organization_id,
+            supplier_organization_id=spec.sourcing_supplier_id,
+            warehouse_id=warehouse.id,
+            expected_date=date.today() + timedelta(days=7),
+            note="各組織で確認できる承認待ちのデモ発注",
+            items=[PurchaseOrderLineInput(sourced_product.id, 10)],
+        )
+    )
+
+    order = CreateOrderUsecase(db).execute(
+        CreateOrderInput(
+            account_id=account_id,
+            seller_organization_id=spec.organization_id,
+            customer_organization_id=spec.customer_id,
+            shipping_address_id=None,
+            requested_ship_date=date.today() + timedelta(days=5),
+            note="組織切替時に表示するデモ受注",
+            items=[
+                CreateOrderLineInput(products[0].id, 8),
+                CreateOrderLineInput(products[1].id, 4),
+            ],
+        )
+    )
+    if spec.order_state == "draft":
+        return
+
+    ConfirmOrderUsecase(db).execute(
+        ConfirmOrderInput(account_id=account_id, order_id=order.id)
+    )
+    if spec.order_state == "allocated":
+        return
+    if spec.order_state == "canceled":
+        CancelOrderUsecase(db).execute(
+            account_id=account_id,
+            order_id=order.id,
+            reason="顧客都合によるデモ取消",
+        )
+        return
+
+    shipment = CreateShipmentUsecase(db).execute(
+        account_id=account_id,
+        order_id=order.id,
+        warehouse_id=warehouse.id,
+        note="他組織向けのデモ出荷",
+    )
+    ShipShipmentUsecase(db).execute(
+        account_id=account_id,
+        shipment_id=shipment.id,
+        tracking_number=f"DEMO-{spec.warehouse_code}-001",
+    )
+    invoice = GenerateInvoiceUsecase(db).execute(
+        GenerateInvoiceInput(
+            account_id=account_id,
+            shipment_id=shipment.id,
+            issue_date=date.today(),
+            due_date=date.today() + timedelta(days=30),
+        )
+    )
+    ChangeInvoiceStatusUsecase(db).execute(
+        account_id=account_id,
+        invoice_id=invoice.id,
+        action="issue",
+    )
+    if not spec.settle_invoice:
+        return
+
+    payment = CreatePaymentUsecase(db).execute(
+        CreatePaymentInput(
+            account_id=account_id,
+            payee_organization_id=spec.organization_id,
+            payer_organization_id=spec.customer_id,
+            payment_date=date.today(),
+            amount=invoice.total_amount,
+            method="BANK_TRANSFER",
+            reference=f"DEMO-{spec.warehouse_code}-PAYMENT",
+        )
+    )
+    PostPaymentUsecase(db).execute(
+        account_id=account_id,
+        payment_id=payment.id,
+        allocations=[
+            PaymentAllocationInput(
+                invoice_id=invoice.id,
+                amount=invoice.total_amount,
+            )
+        ],
     )
 
 
