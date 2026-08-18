@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose an improvement or new capability
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem or limitation should this change address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior without assuming a specific implementation when possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: humq
+    attributes:
+      label: HUMQ relevance
+      description: If applicable, explain what this would demonstrate, clarify, or test about HUMQ.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: List any workarounds or alternative approaches you considered.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What observable outcomes would make this request complete?
+    validations:
+      required: true

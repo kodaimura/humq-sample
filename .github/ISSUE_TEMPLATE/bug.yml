@@ -1,0 +1,75 @@
+name: Bug report
+description: Report reproducible behavior that is not working as expected
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve this project. Do not include secrets or report security vulnerabilities in a public issue. Follow `docs/SECURITY.md` instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - API / business logic
+        - Web UI
+        - Database / migration
+        - Seed / demo data
+        - Docker / development environment
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the problem clearly and concisely.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest set of steps that consistently reproduces the problem.
+      placeholder: |
+        1. Start the demo with ...
+        2. Sign in and open ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the commit or version, OS, Docker version, browser, and any relevant configuration.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Remove tokens, passwords, personal data, and other secrets before posting.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed secrets and personal data from this report.
+          required: true
