@@ -7,7 +7,7 @@ from app.handler._dependency import get_account_id
 from app.handler.dto.returns import *
 from app.usecase.returns.receipts import CreateReturnReceiptInput, CreateReturnReceiptUsecase, PostReturnReceiptUsecase, ReturnReceiptLineInput
 from app.usecase.returns.reads import GetReturnEligibilityUsecase, GetSalesReturnUsecase
-from app.usecase.returns.requests import ChangeSalesReturnStatusUsecase, CreateSalesReturnInput, CreateSalesReturnUsecase, ReturnLineInput
+from app.usecase.returns.requests import ApproveSalesReturnUsecase, CancelSalesReturnUsecase, CreateSalesReturnInput, CreateSalesReturnUsecase, ReturnLineInput
 
 
 router = APIRouter(tags=["returns"])
@@ -37,13 +37,13 @@ def create_sales_return(order_id: int, request: CreateSalesReturnRequest, respon
 
 @router.post("/returns/{sales_return_id}/approve", response_model=SalesReturnOperationResponse)
 def approve_return(sales_return_id: int, request: ReturnStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangeSalesReturnStatusUsecase(db).execute(account_id=account_id, sales_return_id=sales_return_id, action="approve", reason=request.reason)
+    entity = ApproveSalesReturnUsecase(db).execute(account_id=account_id, sales_return_id=sales_return_id, reason=request.reason)
     return ApiResponse.ok(data=SalesReturnOperationResponse(sales_return=SalesReturnResponse.model_validate(entity)), response=response)
 
 
 @router.post("/returns/{sales_return_id}/cancel", response_model=SalesReturnOperationResponse)
 def cancel_return(sales_return_id: int, request: ReturnStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangeSalesReturnStatusUsecase(db).execute(account_id=account_id, sales_return_id=sales_return_id, action="cancel", reason=request.reason)
+    entity = CancelSalesReturnUsecase(db).execute(account_id=account_id, sales_return_id=sales_return_id, reason=request.reason)
     return ApiResponse.ok(data=SalesReturnOperationResponse(sales_return=SalesReturnResponse.model_validate(entity)), response=response)
 
 

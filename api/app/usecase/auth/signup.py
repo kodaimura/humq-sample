@@ -22,6 +22,9 @@ class SignupUsecase:
         self.module = AccountModule(db)
 
     def execute(self, input: SignupInput) -> Account:
+        if not config.ENABLE_SIGNUP:
+            raise AppError(code=ErrorCode.FORBIDDEN)
+
         login_id = resolve_login_id(
             input.login_id,
             input.email,
@@ -39,13 +42,11 @@ class SignupUsecase:
 
         hashed = hash_password(input.password)
         account = self.module.create(
-            Account(
-                login_id=login_id,
-                email=input.email,
-                password_hash=hashed,
-                first_name=input.first_name,
-                last_name=input.last_name,
-            )
+            login_id=login_id,
+            email=input.email,
+            password_hash=hashed,
+            first_name=input.first_name,
+            last_name=input.last_name,
         )
 
         self.db.commit()

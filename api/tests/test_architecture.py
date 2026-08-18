@@ -30,6 +30,32 @@ def called_methods(path: Path) -> set[str]:
     return methods
 
 
+def attribute_path(node: ast.AST) -> tuple[str, ...]:
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+    return tuple(reversed(parts))
+
+
+def assignment_targets(node: ast.AST) -> list[ast.AST]:
+    if isinstance(node, ast.Assign):
+        return node.targets
+    if isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+        return [node.target]
+    return []
+
+
+def usecase_implementation_files() -> list[Path]:
+    return [
+        path
+        for path in sorted(USECASE_ROOT.rglob("*.py"))
+        if path.name not in {"__init__.py", "_policies.py"}
+    ]
+
+
 class HumqDependencyTest(unittest.TestCase):
     def assert_tree_does_not_import(self, directory: str, forbidden: tuple[str, ...]):
         violations: list[str] = []
@@ -50,11 +76,94 @@ class HumqDependencyTest(unittest.TestCase):
                     )
         self.assertEqual(internal_imports, [])
 
+    def test_handlers_do_not_access_the_database_directly(self):
+        violations: list[str] = []
+        database_methods = {
+            "add",
+            "add_all",
+            "begin",
+            "commit",
+            "delete",
+            "execute",
+            "flush",
+            "get",
+            "merge",
+            "refresh",
+            "rollback",
+            "scalar",
+            "scalars",
+        }
+        for path in sorted((APP_ROOT / "handler").rglob("*.py")):
+            for node in ast.walk(parsed(path)):
+                if not isinstance(node, ast.Call) or not isinstance(
+                    node.func, ast.Attribute
+                ):
+                    continue
+                call_path = attribute_path(node.func)
+                if (
+                    len(call_path) >= 2
+                    and call_path[-2] in {"db", "session"}
+                    and call_path[-1] in database_methods
+                ):
+                    violations.append(
+                        f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                        f"{'.'.join(call_path)}()"
+                    )
+        self.assertEqual(violations, [])
+
     def test_modules_do_not_depend_on_usecases_or_queries(self):
         self.assert_tree_does_not_import("module", ("app.usecase", "app.query"))
 
+    def test_modules_stay_with_one_table_and_do_not_commit(self):
+        violations: list[str] = []
+        for path in sorted((APP_ROOT / "module").glob("*/module.py")):
+            for node in ast.walk(parsed(path)):
+                if isinstance(node, ast.ImportFrom):
+                    imported = node.module or ""
+                    if imported.startswith("app.module") and imported != "app.module.business_types":
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
+                        )
+                    if node.level > 1 or (
+                        node.level == 1 and imported not in {"model"}
+                    ):
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> relative import"
+                        )
+            for method in called_methods(path) & {"begin", "commit", "rollback"}:
+                violations.append(f"{path.relative_to(APP_ROOT)} -> {method}()")
+        self.assertEqual(violations, [])
+
     def test_queries_do_not_depend_on_usecases(self):
         self.assert_tree_does_not_import("query", ("app.usecase",))
+
+    def test_queries_are_read_only(self):
+        violations: list[str] = []
+        forbidden_calls = {"add", "add_all", "begin", "commit", "delete", "flush", "merge", "rollback"}
+        forbidden_sql = {"delete", "insert", "update"}
+        for path in sorted((APP_ROOT / "query").rglob("*.py")):
+            tree = parsed(path)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module == "sqlalchemy":
+                    for alias in node.names:
+                        if alias.name in forbidden_sql:
+                            violations.append(
+                                f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {alias.name}"
+                            )
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                    if node.func.attr in forbidden_calls:
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {node.func.attr}()"
+                        )
+                for target in assignment_targets(node):
+                    if not isinstance(target, ast.Attribute):
+                        continue
+                    target_path = attribute_path(target)
+                    if target_path and target_path[0] != "self":
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {'.'.join(target_path)}"
+                        )
+        self.assertEqual(violations, [])
 
     def test_policy_is_not_a_standalone_layer(self):
         policy_files = list((APP_ROOT / "policy").glob("*.py"))
@@ -81,7 +190,14 @@ class HumqDependencyTest(unittest.TestCase):
         for path in sorted(USECASE_ROOT.rglob("_policies.py")):
             for imported in imported_modules(path):
                 imports_runtime_dependency = imported.startswith(
-                    ("sqlalchemy", "app.query")
+                    (
+                        "sqlalchemy",
+                        "app.client",
+                        "app.integration",
+                        "app.query",
+                        "app.core.database",
+                        "app.core.mailer",
+                    )
                 ) or (
                     imported.startswith("app.module")
                     and imported != "app.module.business_types"
@@ -140,6 +256,99 @@ class HumqDependencyTest(unittest.TestCase):
                         violations.append(
                             f"{path.relative_to(APP_ROOT)} -> {alias.name}"
                         )
+        self.assertEqual(violations, [])
+
+    def test_usecases_delegate_orm_persistence_to_modules(self):
+        violations: list[str] = []
+        persistence_methods = {
+            "add",
+            "add_all",
+            "delete",
+            "execute",
+            "flush",
+            "get",
+            "merge",
+            "refresh",
+            "scalar",
+            "scalars",
+        }
+        for path in usecase_implementation_files():
+            tree = parsed(path)
+            imported_model_names: set[str] = set()
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ImportFrom):
+                    continue
+                imported = node.module or ""
+                allowed_sqlalchemy_imports = {
+                    "sqlalchemy.exc": {"IntegrityError"},
+                    "sqlalchemy.orm": {"Session"},
+                }
+                if imported.startswith("sqlalchemy") and not (
+                    imported in allowed_sqlalchemy_imports
+                    and all(
+                        alias.name in allowed_sqlalchemy_imports[imported]
+                        for alias in node.names
+                    )
+                ):
+                    violations.append(
+                        f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
+                    )
+                if not imported.startswith("app.module") or imported == "app.module.business_types":
+                    continue
+                imported_model_names.update(
+                    alias.asname or alias.name
+                    for alias in node.names
+                    if not alias.name.endswith("Module")
+                )
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Attribute):
+                        call_path = attribute_path(node.func)
+                        if (
+                            len(call_path) >= 2
+                            and call_path[-2] in {"db", "session"}
+                            and call_path[-1] in persistence_methods
+                        ):
+                            violations.append(
+                                f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                                f"{'.'.join(call_path)}()"
+                            )
+                    elif (
+                        isinstance(node.func, ast.Name)
+                        and node.func.id in imported_model_names
+                    ):
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                            f"constructs {node.func.id}"
+                        )
+                for target in assignment_targets(node):
+                    if not isinstance(target, ast.Attribute):
+                        continue
+                    target_path = attribute_path(target)
+                    if target_path and target_path[0] != "self":
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                            f"mutates {'.'.join(target_path)}"
+                        )
+        self.assertEqual(violations, [])
+
+    def test_usecases_do_not_dispatch_unrelated_actions(self):
+        violations: list[str] = []
+        for path in usecase_implementation_files():
+            for node in ast.walk(parsed(path)):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if node.name != "execute":
+                    continue
+                argument_names = {
+                    argument.arg
+                    for argument in [*node.args.args, *node.args.kwonlyargs]
+                }
+                if "action" in argument_names:
+                    violations.append(
+                        f"{path.relative_to(APP_ROOT)}:{node.lineno} -> action"
+                    )
         self.assertEqual(violations, [])
 
     def test_internal_modules_are_not_reexported(self):

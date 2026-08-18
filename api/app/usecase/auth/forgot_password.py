@@ -9,7 +9,6 @@ from app.core.crypto import generate_token, hash_token
 from app.core.mailer import get_mailer
 from app.module.account import AccountModule
 from app.module.password_reset_token import (
-    PasswordResetToken,
     PasswordResetTokenModule,
 )
 
@@ -48,11 +47,9 @@ class ForgotPasswordUsecase:
         )
 
         self.token_module.create(
-            PasswordResetToken(
-                account_id=account.id,
-                token_hash=token_hash,
-                expires_at=expires_at,
-            )
+            account_id=account.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
         )
         self.db.commit()
 

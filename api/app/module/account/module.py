@@ -12,7 +12,22 @@ class AccountModule:
     def _base_select(self):
         return select(Account).where(Account.deleted_at.is_(None))
 
-    def create(self, entity: Account) -> Account:
+    def create(
+        self,
+        *,
+        login_id: str,
+        email: str | None,
+        password_hash: str,
+        first_name: str,
+        last_name: str,
+    ) -> Account:
+        entity = Account(
+            login_id=login_id,
+            email=email,
+            password_hash=password_hash,
+            first_name=first_name,
+            last_name=last_name,
+        )
         self.db.add(entity)
         self.db.flush()
         self.db.refresh(entity)
@@ -34,18 +49,42 @@ class AccountModule:
         stmt = self._base_select().where(Account.login_id == login_id)
         return self.db.scalars(stmt).first()
 
-    def update(self, entity: Account) -> Account:
+    def update_profile(
+        self,
+        entity: Account,
+        *,
+        login_id: str,
+        email: str | None,
+        first_name: str,
+        last_name: str,
+        password_hash: str | None = None,
+    ) -> Account:
+        entity.login_id = login_id
+        entity.email = email
+        entity.first_name = first_name
+        entity.last_name = last_name
+        if password_hash is not None:
+            entity.password_hash = password_hash
+            entity.token_version += 1
+        self.db.flush()
+        return entity
+
+    def change_password(self, entity: Account, password_hash: str) -> Account:
+        entity.password_hash = password_hash
+        entity.token_version += 1
         self.db.flush()
         return entity
 
     def disable(self, entity: Account) -> Account:
         entity.disabled_at = datetime.now(timezone.utc)
         entity.token_version += 1
-        return self.update(entity)
+        self.db.flush()
+        return entity
 
     def enable(self, entity: Account) -> Account:
         entity.disabled_at = None
-        return self.update(entity)
+        self.db.flush()
+        return entity
 
     def delete(self, entity: Account, soft: bool = True) -> bool:
         if not entity:
@@ -53,7 +92,7 @@ class AccountModule:
 
         if soft:
             entity.deleted_at = datetime.now(timezone.utc)
-            self.update(entity)
+            self.db.flush()
             return True
 
         self.db.delete(entity)

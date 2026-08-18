@@ -87,8 +87,8 @@ flowchart LR
 - Python: 10,000 行以上（`api/app`、Alembic を含む）
 - TypeScript / TSX: 約 3,700 行
 - PostgreSQL: 42 テーブル
-- Python 単体テスト: 54 件
-- API E2E: 9 シナリオ
+- Python 単体テスト: 59 件
+- API E2E: 10 シナリオ
 
 フロントエンドの画面数を増やすことではなく、サーバー側の業務ルール、状態遷移、排他制御、横断トランザクションを厚くする構成です。
 

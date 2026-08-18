@@ -26,8 +26,5 @@ class UpdatePasswordUsecase:
         if not verify_password(input.old_password, account.password_hash):
             raise AppError(code=ErrorCode.CURRENT_PASSWORD_INCORRECT)
 
-        account.password_hash = hash_password(input.new_password)
-        account.token_version += 1
-
-        self.module.update(account)
+        self.module.change_password(account, hash_password(input.new_password))
         self.db.commit()

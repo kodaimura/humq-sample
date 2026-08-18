@@ -10,7 +10,18 @@ class PasswordResetTokenModule:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, entity: PasswordResetToken) -> PasswordResetToken:
+    def create(
+        self,
+        *,
+        account_id: int,
+        token_hash: str,
+        expires_at: datetime,
+    ) -> PasswordResetToken:
+        entity = PasswordResetToken(
+            account_id=account_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
         self.db.add(entity)
         self.db.flush()
         self.db.refresh(entity)
@@ -45,6 +56,9 @@ class PasswordResetTokenModule:
             token.used_at = now
         self.db.flush()
 
-    def update(self, entity: PasswordResetToken) -> PasswordResetToken:
+    def mark_used(
+        self, entity: PasswordResetToken, *, used_at: datetime
+    ) -> PasswordResetToken:
+        entity.used_at = used_at
         self.db.flush()
         return entity

@@ -42,15 +42,15 @@ class UpdateAccountUsecase:
             if existing_email and existing_email.id != account.id:
                 raise AppError(code=ErrorCode.EMAIL_ALREADY_EXISTS)
 
-        account.login_id = login_id
-        account.email = input.email
-        account.first_name = input.first_name
-        account.last_name = input.last_name
-
-        if input.password is not None:
-            account.password_hash = hash_password(input.password)
-            account.token_version += 1
-
-        updated_account = self.module.update(account)
+        updated_account = self.module.update_profile(
+            account,
+            login_id=login_id,
+            email=input.email,
+            first_name=input.first_name,
+            last_name=input.last_name,
+            password_hash=(
+                hash_password(input.password) if input.password is not None else None
+            ),
+        )
         self.db.commit()
         return updated_account

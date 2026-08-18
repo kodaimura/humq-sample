@@ -6,7 +6,7 @@ from app.core.response import ApiResponse
 from app.handler._dependency import get_account_id
 from app.handler.dto.procurement import *
 from app.usecase.procurement.catalog import ConfigureReorderPolicyInput, ConfigureReorderPolicyUsecase, ConfigureSupplierProductInput, ConfigureSupplierProductUsecase
-from app.usecase.procurement.orders import ChangePurchaseOrderStatusUsecase, CreatePurchaseOrderInput, CreatePurchaseOrderUsecase, PurchaseOrderLineInput
+from app.usecase.procurement.orders import ApprovePurchaseOrderUsecase, CancelPurchaseOrderUsecase, CreatePurchaseOrderInput, CreatePurchaseOrderUsecase, PurchaseOrderLineInput
 from app.usecase.procurement.reads import GetPurchaseOrderUsecase, ListPurchaseOrdersUsecase, ListReorderRecommendationsUsecase
 from app.usecase.procurement.receipts import CreateGoodsReceiptInput, CreateGoodsReceiptUsecase, GoodsReceiptLineInput, PostGoodsReceiptUsecase
 
@@ -58,13 +58,13 @@ def create_purchase_order(organization_id: int, request: CreatePurchaseOrderRequ
 
 @router.post("/purchase-orders/{purchase_order_id}/approve", response_model=PurchaseOrderOperationResponse)
 def approve_purchase_order(purchase_order_id: int, request: ChangeStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangePurchaseOrderStatusUsecase(db).execute(account_id=account_id, purchase_order_id=purchase_order_id, action="approve", reason=request.reason)
+    entity = ApprovePurchaseOrderUsecase(db).execute(account_id=account_id, purchase_order_id=purchase_order_id, reason=request.reason)
     return ApiResponse.ok(data=PurchaseOrderOperationResponse(purchase_order=PurchaseOrderResponse.model_validate(entity)), response=response)
 
 
 @router.post("/purchase-orders/{purchase_order_id}/cancel", response_model=PurchaseOrderOperationResponse)
 def cancel_purchase_order(purchase_order_id: int, request: ChangeStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangePurchaseOrderStatusUsecase(db).execute(account_id=account_id, purchase_order_id=purchase_order_id, action="cancel", reason=request.reason)
+    entity = CancelPurchaseOrderUsecase(db).execute(account_id=account_id, purchase_order_id=purchase_order_id, reason=request.reason)
     return ApiResponse.ok(data=PurchaseOrderOperationResponse(purchase_order=PurchaseOrderResponse.model_validate(entity)), response=response)
 
 

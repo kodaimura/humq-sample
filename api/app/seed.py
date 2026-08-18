@@ -1,4 +1,9 @@
-"""Create a coherent B2B demo dataset through the application's Usecases."""
+"""Create development-only fixtures through the application's Usecases.
+
+This fixture orchestrator is not a runtime Handler. State-changing business
+operations go through Usecases; direct Module reads are limited to idempotency
+checks and resolving identifiers created by earlier fixture steps.
+"""
 
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -15,9 +20,9 @@ from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_return_item import SalesReturnItemModule
 from app.usecase.auth.signup import SignupInput, SignupUsecase
 from app.usecase.billing.invoices import (
-    ChangeInvoiceStatusUsecase,
     GenerateInvoiceInput,
     GenerateInvoiceUsecase,
+    IssueInvoiceUsecase,
 )
 from app.usecase.billing.payments import (
     CreatePaymentInput,
@@ -62,7 +67,7 @@ from app.usecase.procurement.catalog import (
     ConfigureSupplierProductUsecase,
 )
 from app.usecase.procurement.orders import (
-    ChangePurchaseOrderStatusUsecase,
+    ApprovePurchaseOrderUsecase,
     CreatePurchaseOrderInput,
     CreatePurchaseOrderUsecase,
     PurchaseOrderLineInput,
@@ -80,7 +85,7 @@ from app.usecase.returns.receipts import (
     ReturnReceiptLineInput,
 )
 from app.usecase.returns.requests import (
-    ChangeSalesReturnStatusUsecase,
+    ApproveSalesReturnUsecase,
     CreateSalesReturnInput,
     CreateSalesReturnUsecase,
     ReturnLineInput,
@@ -539,10 +544,9 @@ def _seed_procurement(db: Session, context: DemoContext) -> None:
             ],
         )
     )
-    ChangePurchaseOrderStatusUsecase(db).execute(
+    ApprovePurchaseOrderUsecase(db).execute(
         account_id=context.account_id,
         purchase_order_id=receiving_order.id,
-        action="approve",
     )
     receiving_items = {
         item.product_id: item
@@ -603,10 +607,9 @@ def _seed_procurement(db: Session, context: DemoContext) -> None:
             ],
         )
     )
-    ChangePurchaseOrderStatusUsecase(db).execute(
+    ApprovePurchaseOrderUsecase(db).execute(
         account_id=context.account_id,
         purchase_order_id=completed_order.id,
-        action="approve",
     )
     completed_items = {
         item.product_id: item
@@ -717,10 +720,9 @@ def _seed_order_to_cash(db: Session, context: DemoContext) -> None:
             due_date=date.today() + timedelta(days=30),
         )
     )
-    ChangeInvoiceStatusUsecase(db).execute(
+    IssueInvoiceUsecase(db).execute(
         account_id=context.account_id,
         invoice_id=invoice.id,
-        action="issue",
     )
     payment = CreatePaymentUsecase(db).execute(
         CreatePaymentInput(
@@ -760,10 +762,9 @@ def _seed_order_to_cash(db: Session, context: DemoContext) -> None:
             ],
         )
     )
-    ChangeSalesReturnStatusUsecase(db).execute(
+    ApproveSalesReturnUsecase(db).execute(
         account_id=context.account_id,
         sales_return_id=sales_return.id,
-        action="approve",
     )
     return_item = SalesReturnItemModule(db).list_by_return(sales_return.id)[0]
     return_receipt = CreateReturnReceiptUsecase(db).execute(
@@ -825,10 +826,9 @@ def _seed_additional_order_to_cash(db: Session, context: DemoContext) -> None:
             due_date=date.today() + timedelta(days=30),
         )
     )
-    ChangeInvoiceStatusUsecase(db).execute(
+    IssueInvoiceUsecase(db).execute(
         account_id=context.account_id,
         invoice_id=invoice.id,
-        action="issue",
     )
     payment = CreatePaymentUsecase(db).execute(
         CreatePaymentInput(
@@ -1170,10 +1170,9 @@ def _seed_secondary_organization(
             due_date=date.today() + timedelta(days=30),
         )
     )
-    ChangeInvoiceStatusUsecase(db).execute(
+    IssueInvoiceUsecase(db).execute(
         account_id=account_id,
         invoice_id=invoice.id,
-        action="issue",
     )
     if not spec.settle_invoice:
         return

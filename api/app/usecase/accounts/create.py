@@ -38,13 +38,11 @@ class CreateAccountUsecase:
                 raise AppError(code=ErrorCode.EMAIL_ALREADY_EXISTS)
 
         account = self.module.create(
-            Account(
-                login_id=login_id,
-                email=input.email,
-                password_hash=hash_password(input.password),
-                first_name=input.first_name,
-                last_name=input.last_name,
-            )
+            login_id=login_id,
+            email=input.email,
+            password_hash=hash_password(input.password),
+            first_name=input.first_name,
+            last_name=input.last_name,
         )
 
         self.db.commit()

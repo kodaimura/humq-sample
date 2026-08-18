@@ -6,7 +6,7 @@ from app.core.response import ApiResponse
 from app.handler._dependency import get_account_id
 from app.handler.dto.billing import *
 from app.usecase.billing.reads import ListReceivablesUsecase
-from app.usecase.billing.invoices import ChangeInvoiceStatusUsecase, GenerateInvoiceInput, GenerateInvoiceUsecase
+from app.usecase.billing.invoices import GenerateInvoiceInput, GenerateInvoiceUsecase, IssueInvoiceUsecase, VoidInvoiceUsecase
 from app.usecase.billing.payments import CreatePaymentInput, CreatePaymentUsecase, PaymentAllocationInput, PostPaymentUsecase
 
 
@@ -21,13 +21,13 @@ def generate_invoice(shipment_id: int, request: GenerateInvoiceRequest, response
 
 @router.post("/invoices/{invoice_id}/issue", response_model=InvoiceOperationResponse)
 def issue_invoice(invoice_id: int, request: InvoiceStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangeInvoiceStatusUsecase(db).execute(account_id=account_id, invoice_id=invoice_id, action="issue", reason=request.reason)
+    entity = IssueInvoiceUsecase(db).execute(account_id=account_id, invoice_id=invoice_id, reason=request.reason)
     return ApiResponse.ok(data=InvoiceOperationResponse(invoice=InvoiceResponse.model_validate(entity)), response=response)
 
 
 @router.post("/invoices/{invoice_id}/void", response_model=InvoiceOperationResponse)
 def void_invoice(invoice_id: int, request: InvoiceStatusRequest, response: Response, account_id: int = Depends(get_account_id), db: Session = Depends(get_db)):
-    entity = ChangeInvoiceStatusUsecase(db).execute(account_id=account_id, invoice_id=invoice_id, action="void", reason=request.reason)
+    entity = VoidInvoiceUsecase(db).execute(account_id=account_id, invoice_id=invoice_id, reason=request.reason)
     return ApiResponse.ok(data=InvoiceOperationResponse(invoice=InvoiceResponse.model_validate(entity)), response=response)
 
 
