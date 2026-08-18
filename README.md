@@ -34,53 +34,9 @@ flowchart LR
     K --> L["入金を配賦"]
 ```
 
-## HUMQ アーキテクチャ
+## HUMQ
 
-HUMQ の責務は `Handler`、`Usecase`、`Module`、`Query` の4つです。Handler は必ず Usecase を入口とし、Module は原則として一つのテーブル、Query は複数テーブルを横断する読み取りを担当します。トランザクション境界は Usecase が所有します。
-
-Usecase 責務内の共有部品は、先頭に `_` を付けて内部ファイルであることを示します。DB に依存しない判断・計算は `_policies.py`、Module や Query を使う共有業務処理は所有ドメインの `_operations.py` に置きます。Operation は呼び出し元 Usecase の Session を共有し、自身では commit を行いません。
-
-```mermaid
-flowchart LR
-    UI["React Operations Console"] --> API["FastAPI Handler"]
-    API --> UC["Usecase"]
-    UC --> M1["Organization Module"]
-    UC --> M2["Order Module"]
-    UC --> M3["Inventory Module"]
-    UC --> Q["Cross-table Query"]
-    UC -.-> P["Usecase-internal Policy"]
-    UC -.-> O["Usecase-internal Operation"]
-    M1 --> DB[(PostgreSQL)]
-    M2 --> DB
-    M3 --> DB
-    Q --> DB
-```
-
-代表的な一連の処理で、以下を確認できます。
-
-- 受注確定時に複数倉庫の利用可能在庫を検索し、引当を作成する
-- 出荷確定時に引当を消し込み、実在庫と在庫台帳を同一トランザクションで更新する
-- 受注・出荷の状態遷移履歴と監査ログを残す
-- 外部連携用イベントを Outbox に保存する
-- 発注の分納、返品の再入庫・廃棄、複数請求への入金配賦をトランザクション内で処理する
-- Usecase 配下の Policy を DB なしで単体テストし、Usecase は判断結果を明示的に業務フローへ組み込む
-- 組織ロールの共通認可を Operation として再利用し、トランザクション境界は呼び出し元 Usecase に保つ
-
-## テーブル構成
-
-| 領域 | テーブル | 数 |
-| --- | --- | ---: |
-| 認証 | `account`, `password_reset_token` | 2 |
-| 組織 | `organization`, `organization_member`, `organization_address` | 3 |
-| 商品 | `product_category`, `product`, `customer_product_price` | 3 |
-| 在庫 | `warehouse`, `inventory_balance`, `inventory_ledger`, `inventory_adjustment`, `inventory_adjustment_item`, `inventory_transfer`, `inventory_transfer_item` | 7 |
-| 受注 | `sales_order`, `sales_order_item`, `sales_order_status_history`, `stock_reservation` | 4 |
-| 出荷 | `shipment`, `shipment_item`, `shipment_status_history` | 3 |
-| 調達 | `supplier_product`, `reorder_policy`, `purchase_order`, `purchase_order_item`, `purchase_order_status_history`, `goods_receipt`, `goods_receipt_item`, `goods_receipt_status_history` | 8 |
-| 返品 | `sales_return`, `sales_return_item`, `sales_return_status_history`, `return_receipt`, `return_receipt_item` | 5 |
-| 請求 | `invoice`, `invoice_item`, `invoice_status_history`, `payment`, `payment_allocation` | 5 |
-| 基盤 | `outbox_event`, `audit_log` | 2 |
-| 合計 |  | **42** |
+[github.com/kodaimura/humq](https://github.com/kodaimura/humq)
 
 ## 実装規模
 
