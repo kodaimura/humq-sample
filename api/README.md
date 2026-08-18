@@ -37,7 +37,7 @@ make seed
 From a fresh clone, `make demo` builds the images, migrates the database, loads
 the demo dataset, and starts the application. The seed is development-only and
 idempotent. Sign in with `demo@example.com` / `HumqDemo123!` and select
-`HUMQ Manufacturing`.
+`HUMQ製造株式会社`.
 
 Useful commands:
 
