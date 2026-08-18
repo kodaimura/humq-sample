@@ -5,7 +5,7 @@ const HeaderPublic: React.FC = () => {
   return (
     <header className={styles.header}>
       <h1 className={styles.logo}>
-        <Link to="/">Humq Sample2</Link>
+        <Link to="/">HUMQ Flow</Link>
       </h1>
     </header>
   );

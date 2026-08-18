@@ -14,7 +14,7 @@ from .router import api_router
 is_prod = config.APP_ENV == "production"
 
 app = FastAPI(
-    title="humq-sample2",
+    title="HUMQ Flow API",
     version="1.0.0",
     docs_url=None if is_prod else "/docs",
     redoc_url=None if is_prod else "/redoc",

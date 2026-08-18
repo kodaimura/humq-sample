@@ -10,7 +10,14 @@
   border-bottom: 1px solid #e6e9ec;
   z-index: 1000;
   height: 65px;
-  padding: 0 15px;
+  padding: 0 1.25rem;
+}
+
+.brandGroup {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  min-width: 0;
 }
 
 .logo a {
@@ -29,15 +36,41 @@
   gap: 0.75rem;
 }
 
+.primaryNav {
+  align-items: center;
+  display: flex;
+  gap: 0.2rem;
+}
+
 .link {
   color: #4b5563;
   text-decoration: none;
   font-size: 0.95rem;
-  transition: color 0.2s ease;
+  border-radius: 7px;
+  padding: 0.45rem 0.65rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .link:hover {
+  background: #f1f5f9;
   color: #111827;
+}
+
+.activeLink {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.organizationSelect {
+  background: #f8fafc;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  color: #334155;
+  font: inherit;
+  font-size: 0.8rem;
+  max-width: 190px;
+  padding: 0.45rem 1.8rem 0.45rem 0.65rem;
 }
 
 .accountName {
@@ -47,4 +80,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .primaryNav { display: none; }
+  .accountName { display: none; }
+}
+
+@media (max-width: 560px) {
+  .header { padding: 0 0.75rem; }
+  .organizationSelect { max-width: 145px; }
+  .logo a { font-size: 1rem; }
 }
