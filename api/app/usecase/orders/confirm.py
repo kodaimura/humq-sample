@@ -8,7 +8,6 @@ from app.module.business_types import (
     InventoryEventType,
     MemberRole,
     OrderStatus,
-    ReservationStatus,
 )
 from app.module.inventory_balance import InventoryBalanceModule
 from app.module.inventory_ledger import InventoryLedgerModule
@@ -107,7 +106,9 @@ class ConfirmOrderUsecase:
             order_id=order.id,
             from_status=previous,
             to_status=next_status,
-            reason=None if reserved_quantity == ordered_quantity else "Insufficient stock",
+            reason=None
+            if reserved_quantity == ordered_quantity
+            else "Insufficient stock",
             changed_by_account_id=input.account_id,
         )
         self.outbox.enqueue(

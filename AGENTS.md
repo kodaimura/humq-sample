@@ -23,9 +23,10 @@
 
 ## Verification
 
+- Run `make -C api format` after changing Python code.
 - Run `make check` for backend unit/architecture tests and frontend lint, tests, type checking, and build.
 - Run `make -C api test_e2e` when API behavior, persistence, migrations, or database integration changes.
-- Run `make build ENV=prod` when container definitions, runtime dependencies, or production configuration changes. `api/.env` must exist; use `api/.env.example` only as a local non-production starting point.
+- Run `make smoke_prod` when container definitions, runtime dependencies, or production configuration changes.
 - Run `make -C api routes` when adding or restructuring HTTP endpoints.
 
 ## Demo Operations

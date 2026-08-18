@@ -1,10 +1,11 @@
 fastapi
 uvicorn
+uvicorn-worker
 gunicorn
 alembic
 sqlalchemy
 psycopg[binary]
-python-jose[cryptography]
+PyJWT
 bcrypt
 pydantic[email]
 pydantic-settings

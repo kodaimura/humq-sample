@@ -1,9 +1,10 @@
-from fastapi import Header, Cookie
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from uuid import uuid4
 
-from jose import jwt, JWTError
+import jwt
+from fastapi import Cookie, Header
+from jwt import InvalidTokenError
 
 from app.core.config import config
 from app.core.error import AppError, ErrorCode
@@ -65,14 +66,14 @@ def create_token_pair(
 def decode_access_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, config.ACCESS_TOKEN_SECRET, algorithms=[ALGORITHM])
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 
 def decode_refresh_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, config.REFRESH_TOKEN_SECRET, algorithms=[ALGORITHM])
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 

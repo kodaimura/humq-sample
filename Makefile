@@ -5,7 +5,7 @@ DOCKER_COMPOSE_CMD := $(DOCKER_COMPOSE) $(DOCKER_COMPOSE_FILE)
 
 .DEFAULT_GOAL := help
 
-.PHONY: up build build_no_cache down down_volumes stop logs logs_api logs_web ps reup migrate seed demo check check_api check_web help
+.PHONY: up build build_no_cache build_prod smoke_prod down down_volumes stop logs logs_api logs_web ps reup migrate seed demo check check_api check_web help
 
 up:
 	$(DOCKER_COMPOSE_CMD) up -d
@@ -15,6 +15,13 @@ build:
 
 build_no_cache:
 	$(DOCKER_COMPOSE_CMD) build --no-cache
+
+build_prod:
+	$(MAKE) build ENV=prod
+
+smoke_prod:
+	$(MAKE) -C api smoke_prod PROJECT_NAME=humq-sample
+	$(MAKE) -C web build ENV=prod
 
 down:
 	$(DOCKER_COMPOSE_CMD) down
@@ -65,6 +72,8 @@ help:
 	@echo "  up              Start the application"
 	@echo "  build           Build application images"
 	@echo "  build_no_cache  Build images without cache"
+	@echo "  build_prod      Build production application images"
+	@echo "  smoke_prod      Build production images and smoke test the API runtime"
 	@echo "  down            Stop and remove containers"
 	@echo "  down_volumes    Stop containers and remove volumes"
 	@echo "  stop            Stop containers"

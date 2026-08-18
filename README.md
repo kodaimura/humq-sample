@@ -88,6 +88,7 @@ make demo
 ## Testing
 
 ```sh
+make -C api format
 make check
 make -C api test_e2e
 make -C api routes

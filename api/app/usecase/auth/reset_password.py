@@ -23,7 +23,7 @@ class ResetPasswordUsecase:
 
     def execute(self, input: ResetPasswordInput) -> None:
         token_hash = hash_token(input.token)
-        token = self.token_module.get_by_hash(token_hash)
+        token = self.token_module.get_by_hash_for_update(token_hash)
 
         if not token:
             raise AppError(code=ErrorCode.TOKEN_INVALID)
@@ -39,9 +39,7 @@ class ResetPasswordUsecase:
         if not account:
             raise AppError(code=ErrorCode.ACCOUNT_NOT_FOUND)
 
-        self.account_module.change_password(
-            account, hash_password(input.new_password)
-        )
+        self.account_module.change_password(account, hash_password(input.new_password))
         self.token_module.mark_used(token, used_at=now)
 
         self.db.commit()

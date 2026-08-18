@@ -1,5 +1,8 @@
 import unittest
 
+from pydantic import ValidationError
+
+from app.core.config import Config
 from app.core.crypto import hash_password, verify_password
 from app.core.jwt import create_token_pair, decode_access_token, decode_refresh_token
 
@@ -25,6 +28,23 @@ class SecurityTest(unittest.TestCase):
         self.assertEqual(refresh_payload["sub"], "42")
         self.assertEqual(refresh_payload["token_version"], 3)
         self.assertEqual(refresh_payload["type"], "refresh")
+
+    def test_production_token_secrets_require_32_bytes(self):
+        settings = {
+            "_env_file": None,
+            "APP_ENV": "production",
+            "FRONTEND_ORIGINS": ["https://example.com"],
+            "REFRESH_TOKEN_SECRET": "r" * 32,
+        }
+
+        with self.assertRaisesRegex(
+            ValidationError,
+            "ACCESS_TOKEN_SECRET must be at least 32 bytes for production",
+        ):
+            Config(ACCESS_TOKEN_SECRET="a" * 31, **settings)
+
+        config = Config(ACCESS_TOKEN_SECRET="a" * 32, **settings)
+        self.assertEqual(config.ACCESS_TOKEN_SECRET, "a" * 32)
 
 
 if __name__ == "__main__":

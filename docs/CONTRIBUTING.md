@@ -6,15 +6,21 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing backend responsibilities
 
 ## Before opening a pull request
 
+Format Python changes with Ruff:
+
+```sh
+make -C api format
+```
+
 Run the same checks used by CI:
 
 ```sh
 make check
 make -C api test_e2e
-make build ENV=prod
+make smoke_prod
 ```
 
-The production Compose file requires `api/.env`. If it does not exist, copy `api/.env.example` as a local non-production starting point before running the build. Never use the example secrets in a deployed environment.
+The production Compose file requires `api/.env` when it is started. Use `api/.env.example` only as a local non-production starting point, and never use the example secrets in a deployed environment.
 
 When behavior changes, add or update tests at the same level as the change. Update the relevant `.env.example` and documentation when configuration changes. Include an Alembic migration for database schema changes and verify both the migration and application behavior.
 

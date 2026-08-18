@@ -1,12 +1,13 @@
+import importlib
+import pkgutil
+
+import app.module
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from app.core.config import config
 
 Base = declarative_base()
-
-import pkgutil
-import importlib
-import app.module
 
 for module_info in pkgutil.walk_packages(app.module.__path__, "app.module."):
     if module_info.name.endswith(".model"):

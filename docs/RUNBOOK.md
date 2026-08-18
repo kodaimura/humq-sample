@@ -55,4 +55,4 @@ The seed command is idempotent, so use `make seed` when a full database reset is
 
 ## Production boundary
 
-`make build ENV=prod` validates that production images can be built, but it is not a deployment command. A real deployment must define its target environment, secret management, database backup and migration procedure, health verification, logs, and rollback process outside this sample before any release is attempted.
+`make smoke_prod` validates that production images can be built and that the API image runs as a non-root user with a healthy endpoint. It is not a deployment command. A real deployment must define its target environment, secret management, database backup and migration procedure, health verification, logs, and rollback process outside this sample before any release is attempted.

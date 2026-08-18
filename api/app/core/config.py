@@ -28,9 +28,9 @@ class Config(BaseSettings):
     )
 
     # === 認証関連設定 ===
-    ACCESS_TOKEN_SECRET: str = "randomstring"
+    ACCESS_TOKEN_SECRET: str = "dev-only-access-token-secret-at-least-32-bytes"
     ACCESS_TOKEN_EXPIRES_SECONDS: int = 900
-    REFRESH_TOKEN_SECRET: str = "randomstring"
+    REFRESH_TOKEN_SECRET: str = "dev-only-refresh-token-secret-at-least-32-bytes"
     REFRESH_TOKEN_EXPIRES_SECONDS: int = 2592000
     REFRESH_TOKEN_REMEMBER_ME_EXPIRES_SECONDS: int = 2592000
 
@@ -85,6 +85,8 @@ class Config(BaseSettings):
             raise ValueError(f"{name} must be changed for production")
         if not value.strip():
             raise ValueError(f"{name} must not be empty for production")
+        if len(value.encode("utf-8")) < 32:
+            raise ValueError(f"{name} must be at least 32 bytes for production")
 
     def _validate_production_frontend_origins(self) -> None:
         for origin in self.FRONTEND_ORIGINS:

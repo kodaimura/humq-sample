@@ -33,6 +33,17 @@ class PasswordResetTokenModule:
         )
         return self.db.scalars(stmt).first()
 
+    def get_by_hash_for_update(
+        self,
+        token_hash: str,
+    ) -> Optional[PasswordResetToken]:
+        stmt = (
+            select(PasswordResetToken)
+            .where(PasswordResetToken.token_hash == token_hash)
+            .with_for_update()
+        )
+        return self.db.scalars(stmt).first()
+
     def find_latest_by_account_id(
         self,
         account_id: int,

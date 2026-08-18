@@ -5,15 +5,20 @@ services:
     image: humq-sample-runtime
     build:
       context: .
+      target: production
     init: true
     restart: always
     env_file:
       - ./.env
-    command: >
-      sh -c "gunicorn app.main:app
-      -k uvicorn.workers.UvicornWorker
-      --bind 0.0.0.0:8000
-      --workers $${GUNICORN_WORKERS:-4}"
+    command:
+      - gunicorn
+      - app.main:app
+      - --worker-class
+      - uvicorn_worker.UvicornWorker
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "${GUNICORN_WORKERS:-4}"
     ports:
       - "${API_BIND_HOST:-127.0.0.1}:8000:8000"
     healthcheck:
@@ -32,6 +37,7 @@ services:
     image: humq-sample-runtime
     build:
       context: .
+      target: production
     profiles:
       - tools
     init: true

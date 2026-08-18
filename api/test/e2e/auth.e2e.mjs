@@ -96,7 +96,7 @@ test("password changes revoke old access and password credentials", async () => 
   assert.equal(typeof refreshed.json?.access_token, "string");
 });
 
-test("password reset is non-enumerating, single-use, and revokes credentials", async () => {
+test("password reset is non-enumerating, concurrency-safe, and revokes credentials", async () => {
   const client = new ApiClient();
   const { account, session } = await createAuthenticatedAccount(
     client,
@@ -127,14 +127,21 @@ test("password reset is non-enumerating, single-use, and revokes credentials", a
     204,
     "verify reset token",
   );
-  expectStatus(
-    await client.post("/api/auth/reset-password", {
-      token: resetToken,
-      new_password: passwords.reset,
-    }),
-    204,
-    "reset password",
+  const concurrentResets = await Promise.all(
+    Array.from({ length: 2 }, () =>
+      client.post("/api/auth/reset-password", {
+        token: resetToken,
+        new_password: passwords.reset,
+      }),
+    ),
   );
+  assert.deepEqual(
+    concurrentResets.map(({ status }) => status).sort((a, b) => a - b),
+    [204, 400],
+    "exactly one concurrent password reset should succeed",
+  );
+  const rejectedReset = concurrentResets.find(({ status }) => status === 400);
+  assert.equal(rejectedReset?.json?.code, "TOKEN_ALREADY_USED");
   expectStatus(
     await client.get(
       `/api/auth/reset-password/verify?token=${encodeURIComponent(resetToken)}`,
