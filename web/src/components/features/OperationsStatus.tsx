@@ -1,4 +1,5 @@
 import styles from "@styles/pages/operations/operations.module.css";
+import { getOperationsStatusLabel } from "@lib/status";
 
 const toneForStatus = (status: string) => {
   if (["SHIPPED", "ALLOCATED", "APPLIED", "RECEIVED", "ACTIVE"].includes(status))
@@ -11,6 +12,6 @@ const toneForStatus = (status: string) => {
 
 export const OperationsStatus = ({ status }: { status: string }) => (
   <span className={styles.badge} data-tone={toneForStatus(status)}>
-    {status.replaceAll("_", " ")}
+    {getOperationsStatusLabel(status)}
   </span>
 );
