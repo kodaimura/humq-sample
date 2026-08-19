@@ -16,6 +16,7 @@ from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class CancelOrderUsecase:
@@ -31,6 +32,7 @@ class CancelOrderUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(
         self, *, account_id: int, order_id: int, reason: str | None
     ) -> SalesOrder:
@@ -94,5 +96,4 @@ class CancelOrderUsecase:
             resource_id=order.id,
             details={"reason": reason},
         )
-        self.db.commit()
         return order

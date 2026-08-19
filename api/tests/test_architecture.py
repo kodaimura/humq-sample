@@ -1,3 +1,20 @@
+"""Structural architecture guardrails for humq-sample.
+
+This suite contains both:
+
+1. Core HUMQ architectural rules
+2. Additional conventions adopted by humq-sample
+
+Rules such as one Usecase class per file, the ``*Usecase`` naming convention,
+the ``execute()`` entry point, and the ``@transactional`` marker are
+sample-specific conventions and are not mandatory requirements of HUMQ itself.
+
+These AST checks detect common structural violations. They do not prove that an
+implementation is semantically correct or completely HUMQ-compliant; raw SQL,
+external database objects, and responsibilities hidden behind misleading names
+still require design review.
+"""
+
 import ast
 from pathlib import Path
 import unittest
@@ -52,11 +69,19 @@ def usecase_implementation_files() -> list[Path]:
     return [
         path
         for path in sorted(USECASE_ROOT.rglob("*.py"))
-        if path.name not in {"__init__.py", "_policies.py"}
+        if path.name != "__init__.py" and not path.stem.startswith("_")
     ]
 
 
-class HumqDependencyTest(unittest.TestCase):
+def public_usecase_files() -> list[Path]:
+    return [
+        path
+        for path in sorted(USECASE_ROOT.rglob("*.py"))
+        if path.name != "__init__.py" and not path.stem.startswith("_")
+    ]
+
+
+class CoreHumqRulesTest(unittest.TestCase):
     def assert_tree_does_not_import(self, directory: str, forbidden: tuple[str, ...]):
         violations: list[str] = []
         for path in sorted((APP_ROOT / directory).rglob("*.py")):
@@ -70,7 +95,7 @@ class HumqDependencyTest(unittest.TestCase):
         internal_imports: list[str] = []
         for path in sorted((APP_ROOT / "handler").rglob("*.py")):
             for imported in imported_modules(path):
-                if imported.endswith(("_policies", "_operations")):
+                if imported.endswith(("_policies", "_operations", "_transaction")):
                     internal_imports.append(
                         f"{path.relative_to(APP_ROOT)} -> {imported}"
                     )
@@ -293,35 +318,6 @@ class HumqDependencyTest(unittest.TestCase):
                         )
         self.assertEqual(violations, [])
 
-    def test_public_usecase_files_define_one_primary_flow(self):
-        violations: list[str] = []
-        for path in sorted(USECASE_ROOT.rglob("*.py")):
-            if path.name == "__init__.py" or path.stem.startswith("_"):
-                continue
-            usecase_classes = [
-                node
-                for node in parsed(path).body
-                if isinstance(node, ast.ClassDef) and node.name.endswith("Usecase")
-            ]
-            if len(usecase_classes) != 1:
-                violations.append(
-                    f"{path.relative_to(APP_ROOT)} -> "
-                    f"{len(usecase_classes)} public Primary Flows"
-                )
-                continue
-            execute_methods = [
-                node
-                for node in usecase_classes[0].body
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and node.name == "execute"
-            ]
-            if len(execute_methods) != 1:
-                violations.append(
-                    f"{path.relative_to(APP_ROOT)} -> "
-                    f"{usecase_classes[0].name} has {len(execute_methods)} execute methods"
-                )
-        self.assertEqual(violations, [])
-
     def test_usecases_delegate_orm_persistence_to_modules(self):
         violations: list[str] = []
         persistence_methods = {
@@ -422,8 +418,147 @@ class HumqDependencyTest(unittest.TestCase):
         violations: list[str] = []
         for path in sorted(USECASE_ROOT.rglob("__init__.py")):
             for imported in imported_modules(path):
-                if imported.endswith(("_policies", "_operations")):
+                if imported.endswith(("_policies", "_operations", "_transaction")):
                     violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
+        self.assertEqual(violations, [])
+
+
+class HumqSampleConventionsTest(unittest.TestCase):
+    def test_public_usecase_files_define_one_primary_flow(self):
+        violations: list[str] = []
+        for path in public_usecase_files():
+            usecase_classes = [
+                node
+                for node in parsed(path).body
+                if isinstance(node, ast.ClassDef) and node.name.endswith("Usecase")
+            ]
+            if len(usecase_classes) != 1:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> "
+                    f"{len(usecase_classes)} public Primary Flows"
+                )
+                continue
+            execute_methods = [
+                node
+                for node in usecase_classes[0].body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == "execute"
+            ]
+            if len(execute_methods) != 1:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> "
+                    f"{usecase_classes[0].name} has {len(execute_methods)} execute methods"
+                )
+        self.assertEqual(violations, [])
+
+    def test_state_changing_usecases_declare_transaction_boundary(self):
+        violations: list[str] = []
+        for path in public_usecase_files():
+            tree = parsed(path)
+            usecase_classes = [
+                node
+                for node in tree.body
+                if isinstance(node, ast.ClassDef) and node.name.endswith("Usecase")
+            ]
+            if len(usecase_classes) != 1:
+                continue
+            usecase_class = usecase_classes[0]
+            owns_session = any(
+                isinstance(target, ast.Attribute)
+                and attribute_path(target) == ("self", "db")
+                for node in ast.walk(usecase_class)
+                for target in assignment_targets(node)
+            )
+            execute_methods = [
+                node
+                for node in usecase_class.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == "execute"
+            ]
+            if len(execute_methods) != 1:
+                continue
+            execute = execute_methods[0]
+            decorators = {
+                attribute_path(decorator)[-1]
+                for decorator in execute.decorator_list
+                if attribute_path(decorator)
+            }
+            if owns_session and "transactional" not in decorators:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> missing @transactional"
+                )
+            if not owns_session and "transactional" in decorators:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> read flow is @transactional"
+                )
+            for method in called_methods(path) & {"commit", "rollback"}:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> calls {method}() directly"
+                )
+        self.assertEqual(violations, [])
+
+    def test_schema_declares_no_implicit_cross_table_writes(self):
+        violations: list[str] = []
+        schema_files = [
+            *sorted((APP_ROOT / "module").rglob("model.py")),
+            *sorted((APP_ROOT / "alembic" / "versions").glob("*.py")),
+        ]
+        for path in schema_files:
+            source = path.read_text()
+            normalized = " ".join(source.lower().split())
+            for marker in (
+                "create trigger",
+                "on delete cascade",
+                "on update cascade",
+            ):
+                if marker in normalized:
+                    violations.append(
+                        f"{path.relative_to(APP_ROOT)} -> contains {marker}"
+                    )
+            for node in ast.walk(parsed(path)):
+                if not isinstance(node, ast.Call):
+                    continue
+                call_path = attribute_path(node.func)
+                call_name = call_path[-1] if call_path else ""
+                if call_name in {"ForeignKey", "ForeignKeyConstraint"}:
+                    for keyword in node.keywords:
+                        if keyword.arg not in {"ondelete", "onupdate"}:
+                            continue
+                        action = (
+                            keyword.value.value.upper()
+                            if isinstance(keyword.value, ast.Constant)
+                            and isinstance(keyword.value.value, str)
+                            else None
+                        )
+                        if action not in {"NO ACTION", "RESTRICT"}:
+                            violations.append(
+                                f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                                f"{keyword.arg}={action or 'dynamic'}"
+                            )
+                if call_name == "relationship":
+                    for keyword in node.keywords:
+                        if keyword.arg != "cascade":
+                            continue
+                        cascade = (
+                            keyword.value.value.lower()
+                            if isinstance(keyword.value, ast.Constant)
+                            and isinstance(keyword.value.value, str)
+                            else "dynamic"
+                        )
+                        if "delete" in cascade or cascade == "dynamic":
+                            violations.append(
+                                f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                                f"relationship cascade={cascade}"
+                            )
+        self.assertEqual(violations, [])
+
+    def test_usecases_do_not_use_assert_for_business_preconditions(self):
+        violations = [
+            f"{path.relative_to(APP_ROOT)}:{node.lineno}"
+            for path in public_usecase_files()
+            for node in ast.walk(parsed(path))
+            if isinstance(node, ast.Assert)
+        ]
         self.assertEqual(violations, [])
 
 

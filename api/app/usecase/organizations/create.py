@@ -8,6 +8,7 @@ from app.module.audit_log import AuditLogModule
 from app.module.business_types import MemberRole
 from app.module.organization import Organization, OrganizationModule
 from app.module.organization_member import OrganizationMemberModule
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class CreateOrganizationUsecase:
         self.members = OrganizationMemberModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: CreateOrganizationInput) -> Organization:
         if self.organizations.get_by_code(input.code):
             raise AppError(code=ErrorCode.DUPLICATE_CODE)
@@ -45,8 +47,6 @@ class CreateOrganizationUsecase:
                 resource_id=organization.id,
                 details={"code": input.code, "kind": input.kind},
             )
-            self.db.commit()
             return organization
         except IntegrityError as exc:
-            self.db.rollback()
             raise AppError(code=ErrorCode.DUPLICATE_CODE) from exc

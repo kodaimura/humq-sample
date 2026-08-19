@@ -8,6 +8,7 @@ from app.module.business_types import MemberRole
 from app.module.product import Product, ProductModule
 from app.module.product_category import ProductCategoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class CreateProductUsecase:
         self.categories = ProductCategoryModule(db)
         self.products = ProductModule(db)
 
+    @transactional
     def execute(self, input: CreateProductInput) -> Product:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -50,5 +52,4 @@ class CreateProductUsecase:
             description=input.description,
             unit_price=input.unit_price,
         )
-        self.db.commit()
         return product

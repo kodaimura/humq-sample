@@ -45,7 +45,7 @@ flowchart LR
 - Python: 10,000+ lines, including `api/app` and Alembic
 - TypeScript / TSX: approximately 3,700 lines
 - PostgreSQL: 42 tables
-- Python unit tests: 59
+- Python unit tests: 69
 - API E2E scenarios: 10
 
 ## Getting Started

@@ -18,6 +18,7 @@ from app.module.warehouse import WarehouseModule
 from app.usecase._policies import line_subtotal
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 from app.usecase.procurement._policies import PurchaseLine, purchase_totals
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ class CreatePurchaseOrderUsecase:
         self.history = PurchaseOrderStatusHistoryModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: CreatePurchaseOrderInput) -> PurchaseOrder:
         self.require_role.run(
             organization_id=input.buyer_organization_id,
@@ -149,7 +151,6 @@ class CreatePurchaseOrderUsecase:
             resource_id=order.id,
             details={"line_count": len(input.items)},
         )
-        self.db.commit()
         return order
 
 

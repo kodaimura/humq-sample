@@ -5,6 +5,7 @@ from app.core.crypto import hash_password
 from app.core.error import AppError, ErrorCode
 from app.module.account.module import AccountModule, Account
 from app.usecase._policies import resolve_login_id
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class SignupUsecase:
         self.db = db
         self.module = AccountModule(db)
 
+    @transactional
     def execute(self, input: SignupInput) -> Account:
         if not config.ENABLE_SIGNUP:
             raise AppError(code=ErrorCode.FORBIDDEN)
@@ -49,5 +51,4 @@ class SignupUsecase:
             last_name=input.last_name,
         )
 
-        self.db.commit()
         return account

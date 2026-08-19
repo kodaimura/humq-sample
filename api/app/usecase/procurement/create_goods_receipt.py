@@ -16,6 +16,7 @@ from app.module.goods_receipt_status_history import GoodsReceiptStatusHistoryMod
 from app.module.purchase_order import PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class CreateGoodsReceiptUsecase:
         self.items = GoodsReceiptItemModule(db)
         self.history = GoodsReceiptStatusHistoryModule(db)
 
+    @transactional
     def execute(self, input: CreateGoodsReceiptInput) -> GoodsReceipt:
         order = self.orders.get_for_update(input.purchase_order_id)
         if not order:
@@ -101,7 +103,6 @@ class CreateGoodsReceiptUsecase:
             reason=None,
             changed_by_account_id=input.account_id,
         )
-        self.db.commit()
         return receipt
 
 

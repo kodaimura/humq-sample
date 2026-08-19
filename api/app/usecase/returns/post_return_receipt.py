@@ -20,6 +20,7 @@ from app.module.sales_return_item import SalesReturnItemModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 from app.usecase.returns._policies import return_status
+from app.usecase._transaction import transactional
 
 
 class PostReturnReceiptUsecase:
@@ -37,14 +38,17 @@ class PostReturnReceiptUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(self, *, account_id: int, return_receipt_id: int) -> ReturnReceipt:
         receipt = self.receipts.get_for_update(return_receipt_id)
         if not receipt:
             raise AppError(code=ErrorCode.RETURN_RECEIPT_NOT_FOUND)
         sales_return = self.returns.get_for_update(receipt.sales_return_id)
-        assert sales_return is not None
+        if sales_return is None:
+            raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(sales_return.order_id)
-        assert order is not None
+        if order is None:
+            raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
         self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
@@ -61,7 +65,8 @@ class PostReturnReceiptUsecase:
             raise AppError(code=ErrorCode.INVALID_RETURN_STATE)
         for item in self.receipt_items.list_by_receipt(receipt.id):
             return_item = self.return_items.get_for_update(item.sales_return_item_id)
-            assert return_item is not None
+            if return_item is None:
+                raise AppError(code=ErrorCode.INVALID_STATE)
             restocked = (
                 item.quantity
                 if item.disposition == ReturnDisposition.RESTOCK.value
@@ -81,7 +86,6 @@ class PostReturnReceiptUsecase:
                     product_id=item.product_id,
                     create=True,
                 )
-                assert balance is not None
                 self.balances.adjust_on_hand(balance, restocked)
                 self.ledger.record(
                     warehouse_id=receipt.warehouse_id,
@@ -101,7 +105,6 @@ class PostReturnReceiptUsecase:
                     product_id=item.product_id,
                     create=True,
                 )
-                assert balance is not None
                 self.ledger.record(
                     warehouse_id=receipt.warehouse_id,
                     product_id=item.product_id,
@@ -145,5 +148,4 @@ class PostReturnReceiptUsecase:
             resource_id=receipt.id,
             details={"sales_return_id": sales_return.id},
         )
-        self.db.commit()
         return receipt

@@ -19,6 +19,7 @@ from app.module.shipment_status_history import ShipmentStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class CreateShipmentUsecase:
@@ -34,6 +35,7 @@ class CreateShipmentUsecase:
         self.history = ShipmentStatusHistoryModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(
         self,
         *,
@@ -106,7 +108,6 @@ class CreateShipmentUsecase:
             resource_id=shipment.id,
             details={"order_id": order.id, "warehouse_id": warehouse_id},
         )
-        self.db.commit()
         return shipment
 
 

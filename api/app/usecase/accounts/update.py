@@ -5,6 +5,7 @@ from app.core.crypto import hash_password
 from app.core.error import AppError, ErrorCode
 from app.module.account.module import AccountModule, Account
 from app.usecase._policies import resolve_login_id
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class UpdateAccountUsecase:
         self.db = db
         self.module = AccountModule(db)
 
+    @transactional
     def execute(self, input: UpdateAccountInput) -> Account:
         account = self.module.get_by_id(input.account_id)
         if not account:
@@ -52,5 +54,4 @@ class UpdateAccountUsecase:
                 hash_password(input.password) if input.password is not None else None
             ),
         )
-        self.db.commit()
         return updated_account

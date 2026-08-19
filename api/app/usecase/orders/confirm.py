@@ -18,6 +18,7 @@ from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class ConfirmOrderUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: ConfirmOrderInput) -> SalesOrder:
         order = self.orders.get_for_update(input.order_id)
         if not order:
@@ -130,5 +132,4 @@ class ConfirmOrderUsecase:
             resource_id=order.id,
             details={"reserved_quantity": reserved_quantity},
         )
-        self.db.commit()
         return order

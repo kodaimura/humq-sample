@@ -1,3 +1,5 @@
+from typing import Literal, overload
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,16 @@ class InventoryBalanceModule:
             InventoryBalance.product_id == product_id,
         )
         return self.db.scalars(stmt).first()
+
+    @overload
+    def get_for_update(
+        self, *, warehouse_id: int, product_id: int, create: Literal[True]
+    ) -> InventoryBalance: ...
+
+    @overload
+    def get_for_update(
+        self, *, warehouse_id: int, product_id: int, create: bool = False
+    ) -> InventoryBalance | None: ...
 
     def get_for_update(
         self, *, warehouse_id: int, product_id: int, create: bool = False

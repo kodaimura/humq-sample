@@ -15,6 +15,7 @@ from app.module.inventory_ledger import InventoryLedgerModule
 from app.module.product import ProductModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class ApplyInventoryAdjustmentUsecase:
         self.ledger = InventoryLedgerModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: ApplyInventoryAdjustmentInput) -> InventoryAdjustment:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -77,7 +79,6 @@ class ApplyInventoryAdjustmentUsecase:
                 product_id=item.product_id,
                 create=True,
             )
-            assert balance is not None
             if not self.balances.adjust_on_hand(balance, item.quantity_delta):
                 raise AppError(
                     code=ErrorCode.INVENTORY_INSUFFICIENT,
@@ -106,5 +107,4 @@ class ApplyInventoryAdjustmentUsecase:
                 "line_count": len(input.items),
             },
         )
-        self.db.commit()
         return adjustment

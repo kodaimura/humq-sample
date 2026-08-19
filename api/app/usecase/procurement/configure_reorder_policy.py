@@ -9,6 +9,7 @@ from app.module.product import ProductModule
 from app.module.reorder_policy import ReorderPolicy, ReorderPolicyModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class ConfigureReorderPolicyUsecase:
         self.organizations = OrganizationModule(db)
         self.policies = ReorderPolicyModule(db)
 
+    @transactional
     def execute(self, input: ConfigureReorderPolicyInput) -> ReorderPolicy:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -63,5 +65,4 @@ class ConfigureReorderPolicyUsecase:
             reorder_point=input.reorder_point,
             target_stock_quantity=input.target_stock_quantity,
         )
-        self.db.commit()
         return policy

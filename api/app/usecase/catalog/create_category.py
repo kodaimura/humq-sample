@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.module.business_types import MemberRole
 from app.module.product_category import ProductCategory, ProductCategoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class CreateCategoryUsecase:
         self.require_role = RequireOrganizationRoleOperation(db)
         self.categories = ProductCategoryModule(db)
 
+    @transactional
     def execute(self, input: CreateCategoryInput) -> ProductCategory:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -30,5 +32,4 @@ class CreateCategoryUsecase:
         category = self.categories.create(
             organization_id=input.organization_id, code=input.code, name=input.name
         )
-        self.db.commit()
         return category

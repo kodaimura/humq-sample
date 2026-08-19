@@ -7,6 +7,7 @@ from app.module.invoice import Invoice, InvoiceModule
 from app.module.invoice_status_history import InvoiceStatusHistoryModule
 from app.module.outbox_event import OutboxEventModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class IssueInvoiceUsecase:
@@ -18,6 +19,7 @@ class IssueInvoiceUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(
         self, *, account_id: int, invoice_id: int, reason: str | None = None
     ) -> Invoice:
@@ -56,5 +58,4 @@ class IssueInvoiceUsecase:
             resource_id=invoice.id,
             details={"reason": reason},
         )
-        self.db.commit()
         return invoice

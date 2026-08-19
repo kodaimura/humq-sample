@@ -10,6 +10,7 @@ from app.module.organization import OrganizationModule
 from app.module.product import ProductModule
 from app.module.supplier_product import SupplierProduct, SupplierProductModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class ConfigureSupplierProductUsecase:
         self.supplier_products = SupplierProductModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: ConfigureSupplierProductInput) -> SupplierProduct:
         self.require_role.run(
             organization_id=input.buyer_organization_id,
@@ -70,5 +72,4 @@ class ConfigureSupplierProductUsecase:
             resource_id=entity.id,
             details={"supplier_id": supplier.id, "product_id": product.id},
         )
-        self.db.commit()
         return entity

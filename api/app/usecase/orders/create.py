@@ -16,6 +16,7 @@ from app.module.sales_order import SalesOrder, SalesOrderModule
 from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class CreateOrderUsecase:
         self.history = SalesOrderStatusHistoryModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: CreateOrderInput) -> SalesOrder:
         self.require_role.run(
             organization_id=input.seller_organization_id,
@@ -128,7 +130,6 @@ class CreateOrderUsecase:
                 "line_count": len(input.items),
             },
         )
-        self.db.commit()
         return order
 
 

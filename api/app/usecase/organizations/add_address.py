@@ -8,6 +8,7 @@ from app.module.organization_address import (
     OrganizationAddressModule,
 )
 from ._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class AddOrganizationAddressUsecase:
         self.require_role = RequireOrganizationRoleOperation(db)
         self.addresses = OrganizationAddressModule(db)
 
+    @transactional
     def execute(self, input: AddOrganizationAddressInput) -> OrganizationAddress:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -45,5 +47,4 @@ class AddOrganizationAddressUsecase:
                 if key != "account_id"
             }
         )
-        self.db.commit()
         return address

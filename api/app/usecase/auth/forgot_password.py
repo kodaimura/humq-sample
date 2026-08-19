@@ -11,6 +11,7 @@ from app.module.account import AccountModule
 from app.module.password_reset_token import (
     PasswordResetTokenModule,
 )
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class ForgotPasswordUsecase:
         self.account_module = AccountModule(db)
         self.token_module = PasswordResetTokenModule(db)
 
+    @transactional
     def execute(self, input: ForgotPasswordInput) -> None:
         account = self.account_module.get_by_email(input.email)
 
@@ -51,7 +53,6 @@ class ForgotPasswordUsecase:
             token_hash=token_hash,
             expires_at=expires_at,
         )
-        self.db.commit()
 
         reset_url = _build_reset_url(raw_token)
         body = _build_mail_body(

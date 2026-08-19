@@ -20,6 +20,7 @@ from app.module.shipment_status_history import ShipmentStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.query.order_fulfillment import OrderFulfillmentQuery
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class ShipShipmentUsecase:
@@ -38,6 +39,7 @@ class ShipShipmentUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit_logs = AuditLogModule(db)
 
+    @transactional
     def execute(
         self, *, account_id: int, shipment_id: int, tracking_number: str | None
     ) -> Shipment:
@@ -136,5 +138,4 @@ class ShipShipmentUsecase:
             resource_id=shipment.id,
             details={"tracking_number": tracking_number},
         )
-        self.db.commit()
         return shipment

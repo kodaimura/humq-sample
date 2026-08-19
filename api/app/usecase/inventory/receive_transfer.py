@@ -8,6 +8,7 @@ from app.module.inventory_transfer import InventoryTransfer, InventoryTransferMo
 from app.module.inventory_transfer_item import InventoryTransferItemModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class ReceiveTransferUsecase:
@@ -20,12 +21,14 @@ class ReceiveTransferUsecase:
         self.warehouses = WarehouseModule(db)
         self.require_role = RequireOrganizationRoleOperation(db)
 
+    @transactional
     def execute(self, *, account_id: int, transfer_id: int) -> InventoryTransfer:
         transfer = self.transfers.get_for_update(transfer_id)
         if not transfer:
             raise AppError(code=ErrorCode.TRANSFER_NOT_FOUND)
         destination = self.warehouses.get_by_id(transfer.destination_warehouse_id)
-        assert destination is not None
+        if destination is None:
+            raise AppError(code=ErrorCode.WAREHOUSE_NOT_FOUND)
         self.require_role.run(
             organization_id=destination.organization_id,
             account_id=account_id,
@@ -39,7 +42,6 @@ class ReceiveTransferUsecase:
                 product_id=item.product_id,
                 create=True,
             )
-            assert balance is not None
             self.balances.adjust_on_hand(balance, item.quantity)
             self.ledger.record(
                 warehouse_id=transfer.destination_warehouse_id,
@@ -54,5 +56,4 @@ class ReceiveTransferUsecase:
                 actor_account_id=account_id,
             )
         self.transfers.mark_received(transfer)
-        self.db.commit()
         return transfer

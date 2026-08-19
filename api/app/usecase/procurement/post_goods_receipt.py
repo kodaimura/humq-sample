@@ -19,6 +19,7 @@ from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
 from app.usecase.procurement._policies import purchase_order_status
+from app.usecase._transaction import transactional
 
 
 class PostGoodsReceiptUsecase:
@@ -36,12 +37,14 @@ class PostGoodsReceiptUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(self, *, account_id: int, goods_receipt_id: int) -> GoodsReceipt:
         receipt = self.receipts.get_for_update(goods_receipt_id)
         if not receipt:
             raise AppError(code=ErrorCode.GOODS_RECEIPT_NOT_FOUND)
         order = self.orders.get_for_update(receipt.purchase_order_id)
-        assert order is not None
+        if order is None:
+            raise AppError(code=ErrorCode.PURCHASE_ORDER_NOT_FOUND)
         self.require_role.run(
             organization_id=order.buyer_organization_id,
             account_id=account_id,
@@ -54,7 +57,8 @@ class PostGoodsReceiptUsecase:
             raise AppError(code=ErrorCode.INVALID_GOODS_RECEIPT_STATE)
         for item in self.receipt_items.list_by_receipt(receipt.id):
             order_item = self.order_items.get_for_update(item.purchase_order_item_id)
-            assert order_item is not None
+            if order_item is None:
+                raise AppError(code=ErrorCode.INVALID_STATE)
             if not self.order_items.receive(order_item, item.quantity):
                 raise AppError(code=ErrorCode.RECEIPT_QUANTITY_EXCEEDED)
             if item.accepted_quantity:
@@ -63,7 +67,6 @@ class PostGoodsReceiptUsecase:
                     product_id=item.product_id,
                     create=True,
                 )
-                assert balance is not None
                 self.balances.adjust_on_hand(balance, item.accepted_quantity)
                 self.ledger.record(
                     warehouse_id=receipt.warehouse_id,
@@ -116,5 +119,4 @@ class PostGoodsReceiptUsecase:
             resource_id=receipt.id,
             details={"purchase_order_id": order.id},
         )
-        self.db.commit()
         return receipt

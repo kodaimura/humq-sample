@@ -7,6 +7,7 @@ from app.core.crypto import hash_password, hash_token
 from app.core.error import AppError, ErrorCode
 from app.module.account import AccountModule
 from app.module.password_reset_token import PasswordResetTokenModule
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class ResetPasswordUsecase:
         self.account_module = AccountModule(db)
         self.token_module = PasswordResetTokenModule(db)
 
+    @transactional
     def execute(self, input: ResetPasswordInput) -> None:
         token_hash = hash_token(input.token)
         token = self.token_module.get_by_hash_for_update(token_hash)
@@ -41,5 +43,3 @@ class ResetPasswordUsecase:
 
         self.account_module.change_password(account, hash_password(input.new_password))
         self.token_module.mark_used(token, used_at=now)
-
-        self.db.commit()

@@ -11,6 +11,7 @@ from app.module.business_types import MemberRole
 from app.module.organization import OrganizationModule
 from app.module.payment import Payment, PaymentModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class CreatePaymentUsecase:
         self.payments = PaymentModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: CreatePaymentInput) -> Payment:
         self.require_role.run(
             organization_id=input.payee_organization_id,
@@ -66,7 +68,6 @@ class CreatePaymentUsecase:
             resource_id=payment.id,
             details={"amount": str(payment.amount), "payer_id": payer.id},
         )
-        self.db.commit()
         return payment
 
 

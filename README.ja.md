@@ -45,7 +45,7 @@ flowchart LR
 - Python: 10,000 行以上（`api/app`、Alembic を含む）
 - TypeScript / TSX: 約 3,700 行
 - PostgreSQL: 42 テーブル
-- Python 単体テスト: 59 件
+- Python 単体テスト: 69 件
 - API E2E: 10 シナリオ
 
 ## 開発環境

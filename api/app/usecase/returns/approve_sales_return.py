@@ -8,6 +8,7 @@ from app.module.sales_order import SalesOrderModule
 from app.module.sales_return import SalesReturn, SalesReturnModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class ApproveSalesReturnUsecase:
@@ -20,6 +21,7 @@ class ApproveSalesReturnUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(
         self, *, account_id: int, sales_return_id: int, reason: str | None = None
     ) -> SalesReturn:
@@ -27,7 +29,8 @@ class ApproveSalesReturnUsecase:
         if not entity:
             raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(entity.order_id)
-        assert order is not None
+        if order is None:
+            raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
         self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,
@@ -64,5 +67,4 @@ class ApproveSalesReturnUsecase:
             resource_id=entity.id,
             details={"reason": reason},
         )
-        self.db.commit()
         return entity

@@ -16,6 +16,7 @@ from app.usecase.billing._policies import (
     validate_payment_allocations,
 )
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class PostPaymentUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(
         self,
         *,
@@ -119,5 +121,4 @@ class PostPaymentUsecase:
                 "unallocated_amount": str(payment.unallocated_amount),
             },
         )
-        self.db.commit()
         return payment

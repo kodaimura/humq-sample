@@ -7,6 +7,7 @@ from app.module.outbox_event import OutboxEventModule
 from app.module.purchase_order import PurchaseOrder, PurchaseOrderModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 class CancelPurchaseOrderUsecase:
@@ -18,6 +19,7 @@ class CancelPurchaseOrderUsecase:
         self.outbox = OutboxEventModule(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(
         self, *, account_id: int, purchase_order_id: int, reason: str | None = None
     ) -> PurchaseOrder:
@@ -58,5 +60,4 @@ class CancelPurchaseOrderUsecase:
             resource_id=order.id,
             details={"reason": reason},
         )
-        self.db.commit()
         return order

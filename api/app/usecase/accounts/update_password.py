@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.crypto import hash_password, verify_password
 from app.core.error import AppError, ErrorCode
 from app.module.account.module import AccountModule
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,7 @@ class UpdatePasswordUsecase:
         self.db = db
         self.module = AccountModule(db)
 
+    @transactional
     def execute(self, input: UpdatePasswordInput) -> None:
         account = self.module.get_by_id(input.account_id)
         if not account:
@@ -27,4 +29,3 @@ class UpdatePasswordUsecase:
             raise AppError(code=ErrorCode.CURRENT_PASSWORD_INCORRECT)
 
         self.module.change_password(account, hash_password(input.new_password))
-        self.db.commit()

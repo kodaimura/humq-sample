@@ -22,7 +22,8 @@ class GetSalesReturnUsecase:
         if not entity:
             raise AppError(code=ErrorCode.SALES_RETURN_NOT_FOUND)
         order = self.orders.get_by_id(entity.order_id)
-        assert order is not None
+        if order is None:
+            raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
         self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=account_id,

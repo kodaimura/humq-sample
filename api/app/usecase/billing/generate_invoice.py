@@ -21,6 +21,7 @@ from app.usecase.billing._policies import (
     validate_invoice_dates,
 )
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -44,12 +45,14 @@ class GenerateInvoiceUsecase:
         self.billing = BillingOverviewQuery(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: GenerateInvoiceInput) -> Invoice:
         shipment = self.shipments.get_by_id(input.shipment_id)
         if not shipment:
             raise AppError(code=ErrorCode.SHIPMENT_NOT_FOUND)
         order = self.orders.get_by_id(shipment.order_id)
-        assert order is not None
+        if order is None:
+            raise AppError(code=ErrorCode.ORDER_NOT_FOUND)
         self.require_role.run(
             organization_id=order.seller_organization_id,
             account_id=input.account_id,
@@ -85,7 +88,8 @@ class GenerateInvoiceUsecase:
         for amount in calculated_lines:
             source = source_lines[amount.reference_id]
             product = self.products.get_by_id(source.product_id)
-            assert product is not None
+            if product is None:
+                raise AppError(code=ErrorCode.PRODUCT_NOT_FOUND)
             self.items.create(
                 invoice_id=invoice.id,
                 order_item_id=source.order_item_id,
@@ -121,7 +125,6 @@ class GenerateInvoiceUsecase:
                 "total_amount": str(invoice.total_amount),
             },
         )
-        self.db.commit()
         return invoice
 
 

@@ -9,6 +9,7 @@ from app.module.inventory_transfer_item import InventoryTransferItemModule
 from app.module.product import ProductModule
 from app.module.warehouse import WarehouseModule
 from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class CreateTransferUsecase:
         self.transfers = InventoryTransferModule(db)
         self.items = InventoryTransferItemModule(db)
 
+    @transactional
     def execute(self, input: CreateTransferInput) -> InventoryTransfer:
         self.require_role.run(
             organization_id=input.organization_id,
@@ -68,5 +70,4 @@ class CreateTransferUsecase:
                 product_id=item.product_id,
                 quantity=item.quantity,
             )
-        self.db.commit()
         return transfer

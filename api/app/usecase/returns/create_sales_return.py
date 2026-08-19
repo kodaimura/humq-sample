@@ -21,6 +21,7 @@ from app.usecase.returns._policies import (
     requested_credit,
     validate_return_request,
 )
+from app.usecase._transaction import transactional
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ class CreateSalesReturnUsecase:
         self.eligibility = ReturnEligibilityQuery(db)
         self.audit = AuditLogModule(db)
 
+    @transactional
     def execute(self, input: CreateSalesReturnInput) -> SalesReturn:
         order = self.orders.get_for_update(input.order_id)
         if not order:
@@ -134,7 +136,6 @@ class CreateSalesReturnUsecase:
             resource_id=entity.id,
             details={"order_id": order.id, "requested_credit_amount": str(credit)},
         )
-        self.db.commit()
         return entity
 
 
