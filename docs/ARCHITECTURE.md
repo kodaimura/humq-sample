@@ -20,6 +20,13 @@ Handler -> Usecase -> Module
 
 Handlers enter business behavior through Usecases. Modules do not depend on Usecases or Queries, and Queries do not depend on Usecases.
 
+## Usecase placement and primary flows
+
+- A Usecase called by a Handler lives under the matching resource directory. For example, `handler/inventory.py` imports public flows from `usecase/inventory/`.
+- A public Usecase file is named with a verb or verb phrase, such as `create_transfer.py`, `ship_transfer.py`, or `list.py`.
+- One public Usecase file defines exactly one `*Usecase` class and one Primary Flow through its `execute` method. The file may also contain input types and private helpers used only by that flow.
+- Independent flows are separate files even when they act on the same business entity. Shared pure decisions and shared database-backed processing follow the Policy and Operation rules below instead of being represented as additional Primary Flows in the same file.
+
 ## Transactions and persistence
 
 - A Usecase owns the business transaction and shares its SQLAlchemy `Session` with participating Modules and Queries.
@@ -44,7 +51,7 @@ The React application under `web/` consumes the HTTP API. Business state transit
 
 ## Architecture verification
 
-`api/tests/test_architecture.py` enforces the dependency, transaction, persistence, policy, and operation rules. Run it with the complete backend suite:
+`api/tests/test_architecture.py` enforces Usecase placement and Primary Flow shape in addition to the dependency, transaction, persistence, policy, and operation rules. Run it with the complete backend suite:
 
 ```sh
 make -C api check

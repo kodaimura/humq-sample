@@ -17,20 +17,21 @@ from app.handler.dto.returns import (
     SalesReturnOperationResponse,
     SalesReturnResponse,
 )
-from app.usecase.returns.receipts import (
+from app.usecase.returns.approve_sales_return import ApproveSalesReturnUsecase
+from app.usecase.returns.cancel_sales_return import CancelSalesReturnUsecase
+from app.usecase.returns.create_return_receipt import (
     CreateReturnReceiptInput,
     CreateReturnReceiptUsecase,
-    PostReturnReceiptUsecase,
     ReturnReceiptLineInput,
 )
-from app.usecase.returns.reads import GetReturnEligibilityUsecase, GetSalesReturnUsecase
-from app.usecase.returns.requests import (
-    ApproveSalesReturnUsecase,
-    CancelSalesReturnUsecase,
+from app.usecase.returns.create_sales_return import (
     CreateSalesReturnInput,
     CreateSalesReturnUsecase,
     ReturnLineInput,
 )
+from app.usecase.returns.get_return_eligibility import GetReturnEligibilityUsecase
+from app.usecase.returns.get_sales_return import GetSalesReturnUsecase
+from app.usecase.returns.post_return_receipt import PostReturnReceiptUsecase
 
 
 router = APIRouter(tags=["returns"])

@@ -18,21 +18,18 @@ from app.handler.dto.catalog import (
     WarehouseResponse,
     WarehousesResponse,
 )
-from app.usecase.catalog.categories import (
+from app.usecase.catalog.create_category import (
     CreateCategoryInput,
     CreateCategoryUsecase,
-    ListCategoriesUsecase,
 )
-from app.usecase.catalog.products import (
-    CreateProductInput,
-    CreateProductUsecase,
-    ListProductsUsecase,
-)
-from app.usecase.catalog.warehouses import (
+from app.usecase.catalog.create_product import CreateProductInput, CreateProductUsecase
+from app.usecase.catalog.create_warehouse import (
     CreateWarehouseInput,
     CreateWarehouseUsecase,
-    ListWarehousesUsecase,
 )
+from app.usecase.catalog.list_categories import ListCategoriesUsecase
+from app.usecase.catalog.list_products import ListProductsUsecase
+from app.usecase.catalog.list_warehouses import ListWarehousesUsecase
 
 
 router = APIRouter(tags=["catalog"])

@@ -19,14 +19,14 @@ from app.usecase.inventory.adjust import (
     ApplyInventoryAdjustmentInput,
     ApplyInventoryAdjustmentUsecase,
 )
-from app.usecase.inventory.list import ListInventoryUsecase
-from app.usecase.inventory.transfer import (
+from app.usecase.inventory.create_transfer import (
     CreateTransferInput,
     CreateTransferUsecase,
-    ReceiveTransferUsecase,
-    ShipTransferUsecase,
     TransferLineInput,
 )
+from app.usecase.inventory.list import ListInventoryUsecase
+from app.usecase.inventory.receive_transfer import ReceiveTransferUsecase
+from app.usecase.inventory.ship_transfer import ShipTransferUsecase
 
 
 router = APIRouter(tags=["inventory"])

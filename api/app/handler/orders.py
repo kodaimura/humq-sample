@@ -20,7 +20,8 @@ from app.usecase.orders.create import (
     CreateOrderLineInput,
     CreateOrderUsecase,
 )
-from app.usecase.orders.list import GetOperationsDashboardUsecase, ListOrdersUsecase
+from app.usecase.orders.get_operations_dashboard import GetOperationsDashboardUsecase
+from app.usecase.orders.list_orders import ListOrdersUsecase
 
 
 router = APIRouter(tags=["orders"])

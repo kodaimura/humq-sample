@@ -76,6 +76,30 @@ class HumqDependencyTest(unittest.TestCase):
                     )
         self.assertEqual(internal_imports, [])
 
+    def test_handler_usecases_live_in_the_matching_resource_directory(self):
+        violations: list[str] = []
+        for path in sorted((APP_ROOT / "handler").glob("*.py")):
+            if path.name == "__init__.py" or path.stem.startswith("_"):
+                continue
+            for node in ast.walk(parsed(path)):
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "app.usecase."
+                if not node.module.startswith(prefix):
+                    continue
+                imported_usecases = [
+                    alias.name for alias in node.names if alias.name.endswith("Usecase")
+                ]
+                if not imported_usecases:
+                    continue
+                resource = node.module.removeprefix(prefix).split(".", maxsplit=1)[0]
+                if resource != path.stem:
+                    violations.append(
+                        f"{path.relative_to(APP_ROOT)}:{node.lineno} -> "
+                        f"{node.module} imports {', '.join(imported_usecases)}"
+                    )
+        self.assertEqual(violations, [])
+
     def test_handlers_do_not_access_the_database_directly(self):
         violations: list[str] = []
         database_methods = {
@@ -267,6 +291,35 @@ class HumqDependencyTest(unittest.TestCase):
                         violations.append(
                             f"{path.relative_to(APP_ROOT)} -> {alias.name}"
                         )
+        self.assertEqual(violations, [])
+
+    def test_public_usecase_files_define_one_primary_flow(self):
+        violations: list[str] = []
+        for path in sorted(USECASE_ROOT.rglob("*.py")):
+            if path.name == "__init__.py" or path.stem.startswith("_"):
+                continue
+            usecase_classes = [
+                node
+                for node in parsed(path).body
+                if isinstance(node, ast.ClassDef) and node.name.endswith("Usecase")
+            ]
+            if len(usecase_classes) != 1:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> "
+                    f"{len(usecase_classes)} public Primary Flows"
+                )
+                continue
+            execute_methods = [
+                node
+                for node in usecase_classes[0].body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == "execute"
+            ]
+            if len(execute_methods) != 1:
+                violations.append(
+                    f"{path.relative_to(APP_ROOT)} -> "
+                    f"{usecase_classes[0].name} has {len(execute_methods)} execute methods"
+                )
         self.assertEqual(violations, [])
 
     def test_usecases_delegate_orm_persistence_to_modules(self):

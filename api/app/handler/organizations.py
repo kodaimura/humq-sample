@@ -18,13 +18,13 @@ from app.handler.dto.organizations import (
 from app.usecase.organizations.add_address import (
     AddOrganizationAddressInput,
     AddOrganizationAddressUsecase,
-    ListOrganizationAddressesUsecase,
 )
 from app.usecase.organizations.create import (
     CreateOrganizationInput,
     CreateOrganizationUsecase,
 )
 from app.usecase.organizations.list import ListOrganizationsUsecase
+from app.usecase.organizations.list_addresses import ListOrganizationAddressesUsecase
 
 
 router = APIRouter(tags=["organizations"])
