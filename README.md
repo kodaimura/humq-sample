@@ -40,6 +40,8 @@ flowchart LR
 
 [github.com/kodaimura/humq](https://github.com/kodaimura/humq)
 
+The backend keeps Handler, Usecase, Module, and Query responsibilities explicit. Business processing extracted from a Usecase stays in its owning domain: pure calculations use files such as `_policies.py`, while shared organization authorization lives in `organizations/_authorization.py` and reads through Modules using the caller's Session. See [the local architecture contract](docs/ARCHITECTURE.md).
+
 ## Project Size
 
 - Python: 10,000+ lines, including `api/app` and Alembic

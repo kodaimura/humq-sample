@@ -26,7 +26,7 @@ Handlers enter business behavior through Usecases. Modules do not depend on Usec
 - Each Usecase exposes one explainable Primary Flow and owns its business transaction.
 - Modules own persistence and behavior for their table; cross-table writes remain coordinated by Usecases.
 - Queries provide read-only joins and projections.
-- Usecases do not call other Usecases. Pure shared decisions and limited shared database-backed processing follow the Policy and Operation rules below.
+- Usecases do not call other Usecases. Named internal business processing may hold pure decisions, database-informed decisions, or consistency processing when its business meaning is worth explaining and testing separately.
 - Following HUMQ's project-structure guidance, Handler-called flows are placed under the corresponding resource directory and public Usecase files use verb or verb-phrase names.
 
 These are responsibility and dependency rules. HUMQ does not require a particular class suffix, public method name, or one-class-per-file layout.
@@ -36,7 +36,7 @@ These are responsibility and dependency rules. HUMQ does not require a particula
 This repository adopts the following additional code conventions to make a medium-scale example uniform and mechanically checkable:
 
 - One public Usecase file defines exactly one `*Usecase` class and one Primary Flow through its `execute` method. The file may also contain input types and private helpers used only by that flow.
-- Independent flows are separate files even when they act on the same business entity. Shared pure decisions and shared database-backed processing follow the Policy and Operation rules below instead of being represented as additional Primary Flows in the same file.
+- Independent flows are separate files even when they act on the same business entity. Internal processing remains part of its calling Usecase's responsibility and is never a second Primary Flow.
 - A state-changing Usecase stores its Session as `self.db` and marks `execute()` with `@transactional`. Read-only Usecases do neither.
 
 The `*Usecase` suffix, `execute()` entry point, one Usecase class per file, and `@transactional` marker are conventions of this sample. They demonstrate one consistent way to implement HUMQ but are not mandatory HUMQ syntax.
@@ -51,15 +51,13 @@ The `*Usecase` suffix, `execute()` entry point, one Usecase class per file, and 
 - Cross-table invariants and state transitions stay visible in the coordinating Usecase.
 - `SessionLocal` uses `expire_on_commit=False`. ORM objects returned by a committed Usecase therefore remain loaded while the Handler maps them to response DTOs, avoiding implicit post-commit SELECTs from the Handler boundary.
 
-## Policies and operations
+## Internal business processing
 
-- A pure decision used by only one Usecase stays in that Usecase.
-- Pure business decisions shared within a usecase domain live in that domain's `_policies.py`.
-- Only domain-independent pure decisions shared across the application live in `api/app/usecase/_policies.py`.
-- Policies do not access the database, network, mailer, clock, or transaction lifecycle.
-- Database-backed processing genuinely shared by multiple Usecases may live in the business capability's owning domain under `_operations.py`. It may use Modules and Queries while participating in the caller's transaction.
-- Operation classes end in `Operation`, expose `run`, do not commit or roll back, and do not call other Operations.
-- Policies and Operations are private implementation details. Handlers never import them directly, and there is no public `policy` or `operations` layer.
+- Decisions and calculations may stay in the Usecase. Extraction is optional, including when only one Usecase calls the processing; an independently meaningful business reason is more useful than a line-count or reuse threshold.
+- Extracted processing lives in a private file in the owning usecase domain. `_policies.py` is a useful starting name for business rules, while a specific name such as `organizations/_authorization.py` makes a focused capability easier to find. The filename does not require the processing to be pure.
+- This sample's existing `_policies.py` files contain pure calculations. `organizations/_authorization.py` demonstrates database-informed authorization shared by several Usecases: it reads through `OrganizationModule` and `OrganizationMemberModule` using the caller's Session.
+- Any extracted processing reads through Modules or Queries and writes through Modules. It does not perform direct ORM/SQL data access, own a Session or transaction boundary, or communicate with external systems. Its caller retains the primary flow, result branches, and failure policy.
+- Handlers do not import or call private processing directly, and domain `__init__.py` files do not re-export it. This is part of the Usecase responsibility, not a fifth layer or a required Policy/Operation category.
 
 ## Implicit database writes
 
@@ -79,6 +77,6 @@ The React application under `web/` consumes the HTTP API. Business state transit
 make -C api check
 ```
 
-The Architecture Test is a guardrail for mechanically detectable structural violations; passing it does not prove complete HUMQ compliance or semantic correctness. For example, AST checks cannot fully detect writes hidden in dynamic raw SQL, triggers installed outside the migrations, database cascade behavior outside the inspected schema, an Operation that semantically hides a Primary Flow, or whether another-table access is genuinely required. Those concerns still require schema inspection and design review.
+The Architecture Test is a guardrail for mechanically detectable structural violations; passing it does not prove complete HUMQ compliance or semantic correctness. For example, AST checks cannot fully detect writes hidden in dynamic raw SQL, triggers installed outside the migrations, database cascade behavior outside the inspected schema, internal processing that semantically hides a Primary Flow, or whether another-table access is genuinely required. Those concerns still require schema inspection and design review.
 
 When an intentional architecture change is made, update the implementation, this document, and the architecture tests in the same pull request.

@@ -240,7 +240,7 @@ test("B2B order fulfillment reserves, ships, and releases inventory", async () =
   assert.equal(dashboard.shipped_order_count, 1);
 });
 
-test("authorization operations and caller rollbacks preserve boundaries", async () => {
+test("organization authorization and caller rollbacks preserve boundaries", async () => {
   const client = new ApiClient();
   const owner = await createAuthenticatedAccount(client, "boundary-owner");
   const outsider = await createAuthenticatedAccount(client, "boundary-outsider");

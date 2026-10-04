@@ -17,7 +17,7 @@ from app.module.outbox_event import OutboxEventModule
 from app.module.purchase_order import PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItemModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase.procurement._policies import purchase_order_status
 from app.usecase._transaction import transactional
 
@@ -25,7 +25,7 @@ from app.usecase._transaction import transactional
 class PostGoodsReceiptUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.receipts = GoodsReceiptModule(db)
         self.receipt_items = GoodsReceiptItemModule(db)
         self.orders = PurchaseOrderModule(db)

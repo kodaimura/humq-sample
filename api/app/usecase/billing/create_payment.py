@@ -10,7 +10,7 @@ from app.module.audit_log import AuditLogModule
 from app.module.business_types import MemberRole
 from app.module.organization import OrganizationModule
 from app.module.payment import Payment, PaymentModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -28,7 +28,7 @@ class CreatePaymentInput:
 class CreatePaymentUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.organizations = OrganizationModule(db)
         self.payments = PaymentModule(db)
         self.audit = AuditLogModule(db)

@@ -7,7 +7,7 @@ from app.module.organization_address import (
     OrganizationAddress,
     OrganizationAddressModule,
 )
-from ._operations import RequireOrganizationRoleOperation
+from ._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -30,7 +30,7 @@ class AddOrganizationAddressInput:
 class AddOrganizationAddressUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.addresses = OrganizationAddressModule(db)
 
     @transactional

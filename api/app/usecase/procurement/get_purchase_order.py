@@ -4,12 +4,12 @@ from app.core.error import AppError, ErrorCode
 from app.module.business_types import MemberRole
 from app.module.purchase_order import PurchaseOrder, PurchaseOrderModule
 from app.module.purchase_order_item import PurchaseOrderItem, PurchaseOrderItemModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class GetPurchaseOrderUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = PurchaseOrderModule(db)
         self.items = PurchaseOrderItemModule(db)
 

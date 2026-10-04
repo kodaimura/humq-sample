@@ -20,7 +20,7 @@ from app.usecase.billing._policies import (
     invoice_totals,
     validate_invoice_dates,
 )
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -35,7 +35,7 @@ class GenerateInvoiceInput:
 class GenerateInvoiceUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.shipments = ShipmentModule(db)
         self.orders = SalesOrderModule(db)
         self.products = ProductModule(db)

@@ -40,6 +40,8 @@ flowchart LR
 
 [github.com/kodaimura/humq](https://github.com/kodaimura/humq)
 
+バックエンドでは Handler、Usecase、Module、Query の責務を明確に分けています。Usecase から切り出した業務処理は、その業務領域に配置します。純粋な計算には `_policies.py` などを使い、組織の権限確認は `organizations/_authorization.py` で、呼び出し元と同じ Session を使って Module を通して読み取ります。詳しくは[このサンプルの設計規約](docs/ARCHITECTURE.md)を参照してください。
+
 ## 実装規模
 
 - Python: 10,000 行以上（`api/app`、Alembic を含む）

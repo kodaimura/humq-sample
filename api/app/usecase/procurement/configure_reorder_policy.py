@@ -8,7 +8,7 @@ from app.module.organization import OrganizationModule
 from app.module.product import ProductModule
 from app.module.reorder_policy import ReorderPolicy, ReorderPolicyModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -26,7 +26,7 @@ class ConfigureReorderPolicyInput:
 class ConfigureReorderPolicyUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)
         self.organizations = OrganizationModule(db)

@@ -6,14 +6,14 @@ from app.module.business_types import MemberRole, PurchaseOrderStatus
 from app.module.outbox_event import OutboxEventModule
 from app.module.purchase_order import PurchaseOrder, PurchaseOrderModule
 from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
 class CancelPurchaseOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = PurchaseOrderModule(db)
         self.history = PurchaseOrderStatusHistoryModule(db)
         self.outbox = OutboxEventModule(db)

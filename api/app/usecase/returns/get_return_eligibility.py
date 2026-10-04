@@ -4,12 +4,12 @@ from app.core.error import AppError, ErrorCode
 from app.module.business_types import MemberRole
 from app.module.sales_order import SalesOrderModule
 from app.query.return_eligibility import ReturnEligibilityQuery, ReturnableOrderItem
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class GetReturnEligibilityUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = SalesOrderModule(db)
         self.query = ReturnEligibilityQuery(db)
 

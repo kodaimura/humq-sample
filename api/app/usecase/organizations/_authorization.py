@@ -5,7 +5,7 @@ from app.module.organization import OrganizationModule
 from app.module.organization_member import OrganizationMemberModule
 
 
-class RequireOrganizationRoleOperation:
+class RequireOrganizationRole:
     def __init__(self, db: Session):
         self.organizations = OrganizationModule(db)
         self.members = OrganizationMemberModule(db)

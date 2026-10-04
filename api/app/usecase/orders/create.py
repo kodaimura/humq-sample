@@ -15,7 +15,7 @@ from app.module.product import ProductModule
 from app.module.sales_order import SalesOrder, SalesOrderModule
 from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -39,7 +39,7 @@ class CreateOrderInput:
 class CreateOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.organizations = OrganizationModule(db)
         self.addresses = OrganizationAddressModule(db)
         self.products = ProductModule(db)

@@ -14,7 +14,7 @@ from app.module.sales_return_item import SalesReturnItemModule
 from app.module.sales_return_status_history import SalesReturnStatusHistoryModule
 from app.module.warehouse import WarehouseModule
 from app.query.return_eligibility import ReturnEligibilityQuery
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase.returns._policies import (
     ReturnEligibility,
     ReturnRequestLine,
@@ -43,7 +43,7 @@ class CreateSalesReturnInput:
 class CreateSalesReturnUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = SalesOrderModule(db)
         self.order_items = SalesOrderItemModule(db)
         self.warehouses = WarehouseModule(db)

@@ -15,7 +15,7 @@ from app.module.return_receipt_item import ReturnReceiptItemModule
 from app.module.sales_order import SalesOrderModule
 from app.module.sales_return import SalesReturnModule
 from app.module.sales_return_item import SalesReturnItemModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -38,7 +38,7 @@ class CreateReturnReceiptInput:
 class CreateReturnReceiptUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.returns = SalesReturnModule(db)
         self.orders = SalesOrderModule(db)
         self.return_items = SalesReturnItemModule(db)

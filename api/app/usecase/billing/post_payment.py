@@ -15,7 +15,7 @@ from app.usecase.billing._policies import (
     PaymentAllocationRequest,
     validate_payment_allocations,
 )
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -28,7 +28,7 @@ class PaymentAllocationInput:
 class PostPaymentUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.payments = PaymentModule(db)
         self.allocations = PaymentAllocationModule(db)
         self.invoices = InvoiceModule(db)

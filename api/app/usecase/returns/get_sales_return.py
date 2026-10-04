@@ -5,12 +5,12 @@ from app.module.business_types import MemberRole
 from app.module.sales_order import SalesOrderModule
 from app.module.sales_return import SalesReturn, SalesReturnModule
 from app.module.sales_return_item import SalesReturnItem, SalesReturnItemModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class GetSalesReturnUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = SalesOrderModule(db)
         self.returns = SalesReturnModule(db)
         self.items = SalesReturnItemModule(db)

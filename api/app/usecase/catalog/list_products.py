@@ -2,12 +2,12 @@ from sqlalchemy.orm import Session
 
 from app.module.business_types import MemberRole
 from app.module.product import Product, ProductModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class ListProductsUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.products = ProductModule(db)
 
     def execute(self, *, account_id: int, organization_id: int) -> list[Product]:

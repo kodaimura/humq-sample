@@ -7,7 +7,7 @@ from app.module.inventory_ledger import InventoryLedgerModule
 from app.module.inventory_transfer import InventoryTransfer, InventoryTransferModule
 from app.module.inventory_transfer_item import InventoryTransferItemModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -19,7 +19,7 @@ class ShipTransferUsecase:
         self.balances = InventoryBalanceModule(db)
         self.ledger = InventoryLedgerModule(db)
         self.warehouses = WarehouseModule(db)
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
 
     @transactional
     def execute(self, *, account_id: int, transfer_id: int) -> InventoryTransfer:

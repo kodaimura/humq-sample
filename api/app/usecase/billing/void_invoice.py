@@ -6,14 +6,14 @@ from app.module.business_types import InvoiceStatus, MemberRole
 from app.module.invoice import Invoice, InvoiceModule
 from app.module.invoice_status_history import InvoiceStatusHistoryModule
 from app.module.outbox_event import OutboxEventModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
 class VoidInvoiceUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.invoices = InvoiceModule(db)
         self.history = InvoiceStatusHistoryModule(db)
         self.outbox = OutboxEventModule(db)

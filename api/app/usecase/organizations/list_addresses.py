@@ -6,12 +6,12 @@ from app.module.organization_address import (
     OrganizationAddressModule,
 )
 
-from ._operations import RequireOrganizationRoleOperation
+from ._authorization import RequireOrganizationRole
 
 
 class ListOrganizationAddressesUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.addresses = OrganizationAddressModule(db)
 
     def execute(

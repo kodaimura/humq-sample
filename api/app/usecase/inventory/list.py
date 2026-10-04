@@ -2,12 +2,12 @@ from sqlalchemy.orm import Session
 
 from app.module.business_types import MemberRole
 from app.query.inventory_overview import InventoryOverview, InventoryOverviewQuery
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class ListInventoryUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.query = InventoryOverviewQuery(db)
 
     def execute(

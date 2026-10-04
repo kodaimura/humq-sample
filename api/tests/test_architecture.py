@@ -8,6 +8,8 @@ This suite contains both:
 Rules such as one Usecase class per file, the ``*Usecase`` naming convention,
 the ``execute()`` entry point, and the ``@transactional`` marker are
 sample-specific conventions and are not mandatory requirements of HUMQ itself.
+Internal business processing has no required Policy/Operation category or
+purity-based filename rule.
 
 These AST checks detect common structural violations. They do not prove that an
 implementation is semantically correct or completely HUMQ-compliant; raw SQL,
@@ -81,6 +83,39 @@ def public_usecase_files() -> list[Path]:
     ]
 
 
+def internal_business_files() -> list[Path]:
+    return [
+        path
+        for path in sorted(USECASE_ROOT.rglob("_*.py"))
+        if path.name not in {"__init__.py", "_transaction.py"}
+    ]
+
+
+def is_private_usecase_import(imported: str) -> bool:
+    return imported.startswith("app.usecase.") and any(
+        part.startswith("_") for part in imported.split(".")[2:]
+    )
+
+
+def private_usecase_imports(path: Path) -> set[str]:
+    private_imports = {
+        imported
+        for imported in imported_modules(path)
+        if is_private_usecase_import(imported)
+    }
+    for node in ast.walk(parsed(path)):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        imported = node.module or ""
+        if node.level and any(part.startswith("_") for part in imported.split(".")):
+            private_imports.add(imported)
+        if node.level or imported.startswith("app.usecase"):
+            private_imports.update(
+                alias.name for alias in node.names if alias.name.startswith("_")
+            )
+    return private_imports
+
+
 class CoreHumqRulesTest(unittest.TestCase):
     def assert_tree_does_not_import(self, directory: str, forbidden: tuple[str, ...]):
         violations: list[str] = []
@@ -94,11 +129,8 @@ class CoreHumqRulesTest(unittest.TestCase):
         self.assert_tree_does_not_import("handler", ("app.module", "app.query"))
         internal_imports: list[str] = []
         for path in sorted((APP_ROOT / "handler").rglob("*.py")):
-            for imported in imported_modules(path):
-                if imported.endswith(("_policies", "_operations", "_transaction")):
-                    internal_imports.append(
-                        f"{path.relative_to(APP_ROOT)} -> {imported}"
-                    )
+            for imported in private_usecase_imports(path):
+                internal_imports.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
         self.assertEqual(internal_imports, [])
 
     def test_handler_usecases_live_in_the_matching_resource_directory(self):
@@ -226,86 +258,85 @@ class CoreHumqRulesTest(unittest.TestCase):
                         )
         self.assertEqual(violations, [])
 
-    def test_policy_is_not_a_standalone_layer(self):
-        policy_files = list((APP_ROOT / "policy").glob("*.py"))
-        self.assertEqual(policy_files, [])
-        self.assert_tree_does_not_import(".", ("app.policy",))
-
-    def test_internal_files_use_private_module_names(self):
-        public_internal_files = [
-            str(path.relative_to(APP_ROOT))
-            for path in USECASE_ROOT.rglob("*.py")
-            if path.name in {"policies.py", "operations.py"}
-        ]
-        internal_directories = [
-            str(path.relative_to(APP_ROOT))
-            for path in USECASE_ROOT.rglob("*")
-            if path.is_dir() and path.name in {"operations", "steps"}
-        ]
-        self.assertEqual(public_internal_files, [])
-        self.assertEqual(internal_directories, [])
-        self.assertFalse((USECASE_ROOT / "_operations.py").exists())
-
-    def test_policies_are_pure(self):
+    def test_internal_business_processing_uses_modules_and_caller_transaction(self):
         violations: list[str] = []
-        for path in sorted(USECASE_ROOT.rglob("_policies.py")):
-            for imported in imported_modules(path):
-                imports_runtime_dependency = imported.startswith(
-                    (
-                        "sqlalchemy",
-                        "app.client",
-                        "app.integration",
-                        "app.query",
-                        "app.core.database",
-                        "app.core.mailer",
-                    )
-                ) or (
-                    imported.startswith("app.module")
-                    and imported != "app.module.business_types"
-                )
-                if imports_runtime_dependency:
-                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
-            for method in called_methods(path) & {
-                "begin",
-                "commit",
-                "rollback",
-                "flush",
-            }:
-                violations.append(f"{path.relative_to(APP_ROOT)} -> {method}()")
-        self.assertEqual(violations, [])
-
-    def test_operations_join_the_calling_usecase_transaction(self):
-        violations: list[str] = []
-        for path in sorted(USECASE_ROOT.rglob("_operations.py")):
+        database_methods = {
+            "add",
+            "add_all",
+            "begin",
+            "commit",
+            "delete",
+            "execute",
+            "flush",
+            "get",
+            "merge",
+            "refresh",
+            "rollback",
+            "scalar",
+            "scalars",
+        }
+        for path in internal_business_files():
             tree = parsed(path)
-            for imported in imported_modules(path):
-                if imported.endswith("_operations") or imported.startswith(
-                    ("app.client", "app.integration")
-                ):
-                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
-            for method in called_methods(path) & {"begin", "commit", "rollback"}:
-                violations.append(f"{path.relative_to(APP_ROOT)} -> {method}()")
             for node in ast.walk(tree):
-                if not isinstance(node, ast.ClassDef) or node.name.startswith("_"):
-                    continue
-                methods = {
-                    child.name
-                    for child in node.body
-                    if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
-                }
-                if not node.name.endswith("Operation"):
-                    violations.append(f"{path.relative_to(APP_ROOT)} -> {node.name}")
-                if "run" not in methods or "execute" in methods:
-                    violations.append(
-                        f"{path.relative_to(APP_ROOT)} -> {node.name} methods"
-                    )
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith(
+                            (
+                                "sqlalchemy",
+                                "app.handler",
+                                "app.client",
+                                "app.integration",
+                                "app.core.database",
+                                "app.core.mailer",
+                            )
+                        ):
+                            violations.append(
+                                f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {alias.name}"
+                            )
+                if isinstance(node, ast.ImportFrom):
+                    imported = node.module or ""
+                    if imported.startswith(
+                        (
+                            "app.handler",
+                            "app.client",
+                            "app.integration",
+                            "app.core.database",
+                            "app.core.mailer",
+                        )
+                    ):
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
+                        )
+                    if imported.startswith("sqlalchemy") and not (
+                        imported == "sqlalchemy.orm"
+                        and all(alias.name == "Session" for alias in node.names)
+                    ):
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {imported}"
+                        )
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                    call_path = attribute_path(node.func)
+                    if call_path[-1] in {"begin", "commit", "rollback"} or (
+                        len(call_path) >= 2
+                        and call_path[-2] in {"db", "session"}
+                        and call_path[-1] in database_methods
+                    ):
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> {'.'.join(call_path)}()"
+                        )
+                for target in assignment_targets(node):
+                    if not isinstance(target, ast.Attribute):
+                        continue
+                    target_path = attribute_path(target)
+                    if target_path and target_path[0] != "self":
+                        violations.append(
+                            f"{path.relative_to(APP_ROOT)}:{node.lineno} -> mutates {'.'.join(target_path)}"
+                        )
         self.assertEqual(violations, [])
 
     def test_usecases_do_not_import_other_usecases(self):
         violations: list[str] = []
         for path in sorted(USECASE_ROOT.rglob("*.py")):
-            if path.name in {"_policies.py", "_operations.py"}:
-                continue
             for node in ast.walk(parsed(path)):
                 if not isinstance(node, ast.ImportFrom):
                     continue
@@ -417,9 +448,8 @@ class CoreHumqRulesTest(unittest.TestCase):
     def test_internal_modules_are_not_reexported(self):
         violations: list[str] = []
         for path in sorted(USECASE_ROOT.rglob("__init__.py")):
-            for imported in imported_modules(path):
-                if imported.endswith(("_policies", "_operations", "_transaction")):
-                    violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
+            for imported in private_usecase_imports(path):
+                violations.append(f"{path.relative_to(APP_ROOT)} -> {imported}")
         self.assertEqual(violations, [])
 
 

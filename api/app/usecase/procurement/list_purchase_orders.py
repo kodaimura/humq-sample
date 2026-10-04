@@ -5,12 +5,12 @@ from app.query.procurement_overview import (
     ProcurementOverviewQuery,
     PurchaseOrderOverview,
 )
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 
 
 class ListPurchaseOrdersUsecase:
     def __init__(self, db: Session):
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.query = ProcurementOverviewQuery(db)
 
     def execute(

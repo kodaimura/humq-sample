@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.module.business_types import MemberRole
 from app.module.product_category import ProductCategory, ProductCategoryModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -19,7 +19,7 @@ class CreateCategoryInput:
 class CreateCategoryUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.categories = ProductCategoryModule(db)
 
     @transactional

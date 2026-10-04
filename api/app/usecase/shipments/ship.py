@@ -19,14 +19,14 @@ from app.module.shipment_item import ShipmentItemModule
 from app.module.shipment_status_history import ShipmentStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.query.order_fulfillment import OrderFulfillmentQuery
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
 class ShipShipmentUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.shipments = ShipmentModule(db)
         self.shipment_items = ShipmentItemModule(db)
         self.shipment_history = ShipmentStatusHistoryModule(db)

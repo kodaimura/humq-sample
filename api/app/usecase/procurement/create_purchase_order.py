@@ -16,7 +16,7 @@ from app.module.purchase_order_status_history import PurchaseOrderStatusHistoryM
 from app.module.supplier_product import SupplierProductModule
 from app.module.warehouse import WarehouseModule
 from app.usecase._policies import line_subtotal
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase.procurement._policies import PurchaseLine, purchase_totals
 from app.usecase._transaction import transactional
 
@@ -50,7 +50,7 @@ class ResolvedPurchaseOrderLine:
 class CreatePurchaseOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.organizations = OrganizationModule(db)
         self.warehouses = WarehouseModule(db)
         self.products = ProductModule(db)

@@ -17,7 +17,7 @@ from app.module.sales_order_item import SalesOrderItemModule
 from app.module.sales_order_status_history import SalesOrderStatusHistoryModule
 from app.module.stock_reservation import StockReservationModule
 from app.module.warehouse import WarehouseModule
-from app.usecase.organizations._operations import RequireOrganizationRoleOperation
+from app.usecase.organizations._authorization import RequireOrganizationRole
 from app.usecase._transaction import transactional
 
 
@@ -30,7 +30,7 @@ class ConfirmOrderInput:
 class ConfirmOrderUsecase:
     def __init__(self, db: Session):
         self.db = db
-        self.require_role = RequireOrganizationRoleOperation(db)
+        self.require_role = RequireOrganizationRole(db)
         self.orders = SalesOrderModule(db)
         self.items = SalesOrderItemModule(db)
         self.warehouses = WarehouseModule(db)
